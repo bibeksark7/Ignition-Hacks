@@ -1,0 +1,11 @@
+# Workstream 01 - Imagery & Vision
+requests>=2.31
+numpy>=1.26
+opencv-python>=4.9
+Pillow>=10.2
+
+# SAM (Segment Anything) via Ultralytics - zero-shot roof segmentation
+ultralytics>=8.2
+
+# .env support for API keys
+python-dotenv>=1.0
