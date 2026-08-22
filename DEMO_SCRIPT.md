@@ -50,15 +50,16 @@ masks sit on screen while you say the colour line — it lands visually.*
 >
 > Roof — four hundred and nineteen square metres, asphalt shingle.
 > Vegetation — none overhanging the roof, but eighteen percent of the
-> five-metre ring around the house. Paved surface — thirteen percent of
-> the lot. Nearest building — two point three metres away.
+> five-metre ring around the house. Paved surface — eight percent of
+> the lot, the driveway and the back patio. Nearest building — two point
+> three metres away.
 >
 > Those four measurements are the whole input. Everything after this is
 > arithmetic on them.
 >
-> Safety score: sixty-four out of a hundred. Grade D. Driven mostly by
+> Safety score: sixty-five out of a hundred. Grade D. Driven mostly by
 > regional flood exposure. That prices out to six thousand two hundred
-> and sixty-five dollars a year.
+> and thirteen dollars a year.
 >
 > And here's the screen we actually built this for.
 
