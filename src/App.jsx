@@ -81,7 +81,7 @@ const PIPELINE_STEPS = [
   'Locating the property',
   'Fetching the aerial photo',
   'Tracing the roof outline',
-  'Measuring tree cover and paving',
+  'Measuring vegetation and paving',
   'Checking regional flood and fire exposure',
   'Pricing the risk',
 ]
@@ -127,7 +127,7 @@ function Pipeline() {
 
 const LAYERS = [
   { key: 'roof', label: 'Roof', tone: 'roof' },
-  { key: 'canopy', label: 'Tree cover', tone: 'canopy' },
+  { key: 'canopy', label: 'Vegetation', tone: 'canopy' },
   { key: 'impervious', label: 'Paved surface', tone: 'water' },
 ]
 
@@ -146,7 +146,7 @@ function Evidence({ data }) {
       sub: titleCase(data.roof_material),
     },
     {
-      label: 'Tree cover over roof',
+      label: 'Vegetation over roof',
       value: pct(data.canopy_overlap_pct),
       tone: 'canopy',
       sub: data.canopy_within_5m_pct != null ? `${pct(data.canopy_within_5m_pct)} within 5 m` : null,
@@ -651,7 +651,7 @@ function App() {
               See what your home&rsquo;s risk is really costing you.
             </h1>
             <p className="intro-lede">
-              We measure your roof, tree cover and paving from the aerial photo, then show which
+              We measure your roof, vegetation and paving from the aerial photo, then show which
               fixes pay for themselves.
             </p>
             <AddressMap onConfirm={handleAnalyze} loading={loading} />

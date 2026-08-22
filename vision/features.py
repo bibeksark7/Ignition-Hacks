@@ -139,7 +139,7 @@ def _dilate_by_radius_m(mask: np.ndarray, radius_m: float, m_per_px: float) -> n
 # wide); the front/back cap keeps a large lot-area estimate from pushing
 # the region out into the public road, where the asphalt would read as
 # this property's impervious surface.
-_LOT_SIDE_MARGIN_M = 3.0
+_LOT_SIDE_MARGIN_M = 2.0
 _LOT_END_MARGIN_M = 14.0
 # Always reach at least this far past each end of the house, even when the
 # lot-area estimate would suggest a shorter rectangle. A driveway runs from
