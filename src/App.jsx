@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { mockAnalysis } from './mockAnalysis'
 import AddressMap from './AddressMap'
+import { fetchAnalysis } from './api'
 import './App.css'
 
 const PERIL_LABELS = {
@@ -13,39 +13,61 @@ function formatMoney(n) {
   return n.toLocaleString('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })
 }
 
-// Contract A in CONTEXT.md defines risk_score as a flat number, but the
-// merged response may end up shaping it as { overall, ... } instead
-// (workstream-02's risk-score conflict). Accept either so this layer
-// doesn't break depending on which shape wins.
+// Settled shape (workstream-02): risk_score: { overall, grade, perils: {...} }.
 function getOverallRiskScore(data) {
-  return typeof data.risk_score === 'object' ? data.risk_score.overall : data.risk_score
+  return data.risk_score.overall
 }
 
-function LoadingSteps() {
+// The single biggest driver across all perils, for the headline sub-line.
+function getTopDriver(perils) {
+  const allDrivers = perils.flatMap((p) => p.drivers ?? [])
+  if (!allDrivers.length) return null
+  return allDrivers.reduce((a, b) => (b.effect > a.effect ? b : a))
+}
+
+function LoadingSteps({ slow }) {
   const steps = ['Fetching imagery', 'Segmenting roof', 'Measuring canopy & pavement', 'Scoring risk', 'Pricing']
   return (
-    <ul className="loading-steps">
-      {steps.map((s) => (
-        <li key={s}>{s}...</li>
-      ))}
-    </ul>
+    <>
+      <ul className="loading-steps">
+        {steps.map((s) => (
+          <li key={s}>{s}...</li>
+        ))}
+      </ul>
+      {slow && <p className="map-hint">First look at a new address takes 10–20s (cold model). Cached addresses are instant.</p>}
+    </>
   )
 }
 
 function ImageryPanel({ data }) {
   const [layers, setLayers] = useState({ roof: true, canopy: true, impervious: true })
-
   const toggle = (key) => setLayers((prev) => ({ ...prev, [key]: !prev[key] }))
+
+  const hasRealImagery = Boolean(data.imagery_png)
 
   return (
     <section className="imagery-panel">
       <div className="imagery-tile">
-        <div className="imagery-placeholder">
-          Satellite tile for {data.address}
-          {layers.roof && <div className="mask mask-roof" />}
-          {layers.canopy && <div className="mask mask-canopy" />}
-          {layers.impervious && <div className="mask mask-impervious" />}
-        </div>
+        {hasRealImagery ? (
+          <div className="imagery-real" style={{ backgroundImage: `url(${data.imagery_png})` }}>
+            {layers.roof && data.roof_mask_png && (
+              <div className="mask-layer mask-layer-roof" style={{ maskImage: `url(${data.roof_mask_png})`, WebkitMaskImage: `url(${data.roof_mask_png})` }} />
+            )}
+            {layers.canopy && data.canopy_mask_png && (
+              <div className="mask-layer mask-layer-canopy" style={{ maskImage: `url(${data.canopy_mask_png})`, WebkitMaskImage: `url(${data.canopy_mask_png})` }} />
+            )}
+            {layers.impervious && data.impervious_mask_png && (
+              <div className="mask-layer mask-layer-impervious" style={{ maskImage: `url(${data.impervious_mask_png})`, WebkitMaskImage: `url(${data.impervious_mask_png})` }} />
+            )}
+          </div>
+        ) : (
+          <div className="imagery-placeholder">
+            Satellite tile for {data.address}
+            {layers.roof && <div className="mask mask-roof" />}
+            {layers.canopy && <div className="mask mask-canopy" />}
+            {layers.impervious && <div className="mask mask-impervious" />}
+          </div>
+        )}
         <div className="capture-date">Imagery captured {data.imagery_date}</div>
       </div>
       <div className="layer-toggles">
@@ -66,22 +88,40 @@ function ImageryPanel({ data }) {
   )
 }
 
+function LowConfidenceBanner({ data }) {
+  if (!data.low_confidence_warning) return null
+  return (
+    <div className="callout-warning">
+      Low-confidence measurement{data.low_confidence_reason ? `: ${data.low_confidence_reason}` : ''} — the
+      segmentation may have missed part of the roof. Numbers below are a rougher estimate than usual.
+    </div>
+  )
+}
+
 function RiskAndValue({ data }) {
+  const topDriver = getTopDriver(data.perils)
+  const homeValue = data.home_value_estimate ?? data.estimated_value
+  const valueConfidence = data.home_value_confidence ?? data.value_confidence
+
   return (
     <section className="risk-and-value">
       <div className="headline-card risk-card">
         <div className="headline-label">Your annual risk cost</div>
         <div className="headline-figure">{formatMoney(data.annual_premium)}/yr</div>
         <div className="headline-sub">
-          Risk score <strong>{getOverallRiskScore(data)}/100</strong> — driven mostly by{' '}
-          {data.risk_score_breakdown[0].top_driver.replaceAll('_', ' ')}
+          Risk score <strong>{getOverallRiskScore(data)}/100</strong>
+          {data.risk_score?.grade && ` (${data.risk_score.grade})`}
+          {topDriver && <> — driven mostly by {topDriver.plain_language.toLowerCase()}</>}
         </div>
       </div>
       <div className="headline-card value-card">
         <div className="headline-label">Estimated home value</div>
-        <div className="headline-figure">{formatMoney(data.estimated_value)}</div>
+        <div className="headline-figure">{formatMoney(homeValue)}</div>
         <div className="headline-sub">
-          Rough estimate, not an appraisal ({data.value_confidence} confidence)
+          Rough estimate, not an appraisal ({valueConfidence} confidence)
+          {data.premium_pct_of_value != null && (
+            <> — risk costs {(data.premium_pct_of_value * 100).toFixed(2)}% of home value/yr</>
+          )}
         </div>
       </div>
     </section>
@@ -93,15 +133,21 @@ function PerilBreakdown({ perils }) {
   return (
     <section className="peril-breakdown">
       <h2>Where the cost comes from</h2>
-      {perils.map((p) => (
-        <div className="peril-row" key={p.name}>
-          <div className="peril-name">{PERIL_LABELS[p.name] ?? p.name}</div>
-          <div className="peril-bar-track">
-            <div className="peril-bar" style={{ width: `${(p.premium / max) * 100}%` }} />
+      {perils.map((p) => {
+        const top = (p.drivers ?? []).reduce((a, b) => ((b?.effect ?? 0) > (a?.effect ?? 0) ? b : a), null)
+        return (
+          <div className="peril-row-block" key={p.name}>
+            <div className="peril-row">
+              <div className="peril-name">{PERIL_LABELS[p.name] ?? p.name}</div>
+              <div className="peril-bar-track">
+                <div className="peril-bar" style={{ width: `${(p.premium / max) * 100}%` }} />
+              </div>
+              <div className="peril-amount">{formatMoney(p.premium)}</div>
+            </div>
+            {top?.plain_language && <div className="peril-driver">{top.plain_language}</div>}
           </div>
-          <div className="peril-amount">{formatMoney(p.premium)}</div>
-        </div>
-      ))}
+        )
+      })}
     </section>
   )
 }
@@ -126,8 +172,16 @@ function MitigationCards({ mitigations }) {
               </div>
               <div>
                 <span className="stat-label">Payback</span>
-                <span className="stat-value">{m.payback_years.toFixed(1)} yrs</span>
+                <span className="stat-value">
+                  {m.payback_years == null ? '—' : `${m.payback_years.toFixed(1)} yrs`}
+                </span>
               </div>
+              {m.risk_score_delta != null && (
+                <div>
+                  <span className="stat-label">Risk score</span>
+                  <span className="stat-value">+{m.risk_score_delta.toFixed(1)}</span>
+                </div>
+              )}
             </div>
             <div className="mitigation-cobenefit">{m.co_benefit}</div>
           </div>
@@ -140,6 +194,7 @@ function MitigationCards({ mitigations }) {
 function BeforeAfter({ data }) {
   const [showAfter, setShowAfter] = useState(false)
   const premium = showAfter ? data.premium_if_all_actions : data.annual_premium
+  const riskScore = showAfter ? data.risk_score_if_all_actions?.overall : getOverallRiskScore(data)
 
   return (
     <section className="before-after">
@@ -147,7 +202,10 @@ function BeforeAfter({ data }) {
         <input type="checkbox" checked={showAfter} onChange={(e) => setShowAfter(e.target.checked)} />
         If I did every recommended fix
       </label>
-      <div className="before-after-figure">{formatMoney(premium)}/yr</div>
+      <div className="before-after-figures">
+        <div className="before-after-figure">{formatMoney(premium)}/yr</div>
+        {riskScore != null && <div className="before-after-score">Risk score {riskScore}/100</div>}
+      </div>
     </section>
   )
 }
@@ -155,14 +213,19 @@ function BeforeAfter({ data }) {
 function App() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  const handleAnalyze = ({ address, lat, lon }) => {
+  const handleAnalyze = async ({ address, lat, lon }) => {
     setLoading(true)
-    // Placeholder for the real GET /analyze?address=...&lat=...&lon=... call.
-    setTimeout(() => {
-      setData({ ...mockAnalysis, address, lat, lon })
+    setError(null)
+    try {
+      const result = await fetchAnalysis({ address, lat, lon })
+      setData({ ...result, address: address || result.address })
+    } catch (err) {
+      setError(err.message || 'Could not reach the analysis servers.')
+    } finally {
       setLoading(false)
-    }, 900)
+    }
   }
 
   return (
@@ -174,11 +237,18 @@ function App() {
 
       <AddressMap onConfirm={handleAnalyze} loading={loading} />
 
-      {loading && <LoadingSteps />}
+      {loading && <LoadingSteps slow />}
+
+      {error && !loading && (
+        <p className="map-hint map-hint-error">
+          {error} — check that both the vision and pricing servers are reachable (see CONTEXT.md).
+        </p>
+      )}
 
       {data && !loading && (
         <>
           <ImageryPanel data={data} />
+          <LowConfidenceBanner data={data} />
           <RiskAndValue data={data} />
           <PerilBreakdown perils={data.perils} />
           <BeforeAfter data={data} />
