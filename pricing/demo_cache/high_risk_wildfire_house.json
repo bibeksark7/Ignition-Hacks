@@ -27,12 +27,12 @@
         "wind_hail": 64.2
       }
     },
-    "annual_premium": 2372.61,
+    "annual_premium": 1866.93,
     "coverage_amount": 610000,
     "perils": [
       {
         "name": "fire",
-        "premium": 980.65,
+        "premium": 771.45,
         "multiplier": 2.143,
         "drivers": [
           {
@@ -54,7 +54,7 @@
       },
       {
         "name": "water",
-        "premium": 633.35,
+        "premium": 499.23,
         "multiplier": 1.222,
         "drivers": [
           {
@@ -76,7 +76,7 @@
       },
       {
         "name": "wind_hail",
-        "premium": 582.86,
+        "premium": 457.96,
         "multiplier": 1.365,
         "drivers": [
           {
@@ -100,45 +100,36 @@
     "mitigations": [
       {
         "action": "Remove limbs overhanging roof",
-        "cost": 800,
-        "annual_saving": 162.31,
-        "payback_years": 4.9,
+        "cost": 500,
+        "annual_saving": 127.68,
+        "payback_years": 3.9,
         "peril": "fire",
         "risk_score_delta": 8.8,
         "co_benefit": "Reduces ignition pathway to structure"
       },
       {
         "action": "Clear vegetation within 5m of structure",
-        "cost": 650,
-        "annual_saving": 92.64,
-        "payback_years": 7.0,
+        "cost": 1200,
+        "annual_saving": 72.88,
+        "payback_years": 16.5,
         "peril": "fire",
         "risk_score_delta": 5.0,
         "co_benefit": "Removes the primary ember-ignition pathway (a standard WUI mitigation)"
       },
       {
-        "action": "Install gutter guards",
-        "cost": 350,
-        "annual_saving": 18.44,
-        "payback_years": 19.0,
-        "peril": "wind_hail",
-        "risk_score_delta": 0.8,
-        "co_benefit": "Prevents debris backup that contributes to water intrusion during storms"
-      },
-      {
         "action": "Repair and reseal roof",
-        "cost": 2200,
-        "annual_saving": 97.17,
-        "payback_years": 22.6,
+        "cost": 1400,
+        "annual_saving": 76.42,
+        "payback_years": 18.3,
         "peril": "wind_hail",
         "risk_score_delta": 4.4,
         "co_benefit": "A sound roof surface sheds water and survives hail impact better"
       },
       {
         "action": "Install ember-resistant vents",
-        "cost": 1200,
-        "annual_saving": 34.58,
-        "payback_years": 34.7,
+        "cost": 700,
+        "annual_saving": 27.21,
+        "payback_years": 25.7,
         "peril": "fire",
         "risk_score_delta": 1.9,
         "co_benefit": "Stops wind-blown embers from entering the attic during a nearby fire"
@@ -146,24 +137,33 @@
       {
         "action": "Install a backwater valve",
         "cost": 2500,
-        "annual_saving": 44.8,
-        "payback_years": 55.8,
+        "annual_saving": 35.31,
+        "payback_years": 70.8,
         "peril": "water",
         "risk_score_delta": 2.4,
         "co_benefit": "Stops sewer backup into the home during heavy rainfall events"
       },
       {
+        "action": "Install gutter guards",
+        "cost": 1100,
+        "annual_saving": 14.49,
+        "payback_years": 75.9,
+        "peril": "wind_hail",
+        "risk_score_delta": 0.8,
+        "co_benefit": "Prevents debris backup that contributes to water intrusion during storms"
+      },
+      {
         "action": "Upgrade to a Class-A fire-rated metal roof",
-        "cost": 14000,
-        "annual_saving": 96.18,
-        "payback_years": 145.6,
+        "cost": 32000,
+        "annual_saving": 75.63,
+        "payback_years": 423.1,
         "peril": "fire",
         "risk_score_delta": 4.8,
         "co_benefit": "Non-combustible roofing survives ember exposure and radiant heat, and holds up to hail"
       },
       {
         "action": "Convert driveway to permeable pavers",
-        "cost": 4500,
+        "cost": 9000,
         "annual_saving": 0.0,
         "payback_years": null,
         "peril": "water",
@@ -171,7 +171,7 @@
         "co_benefit": "Lets stormwater infiltrate instead of overloading storm sewers"
       }
     ],
-    "premium_if_all_actions": 1826.46,
+    "premium_if_all_actions": 1437.29,
     "risk_score_if_all_actions": {
       "overall": 75.9,
       "grade": "C",
@@ -185,6 +185,8 @@
     "home_value_estimate": 610000,
     "home_value_basis": "synthetic fixture \u2014 not a real estimate",
     "home_value_confidence": "low",
-    "premium_pct_of_value": 0.0039
+    "premium_pct_of_value": 0.0031,
+    "measurement_confidence": 0.77,
+    "low_confidence_warning": false
   }
 }

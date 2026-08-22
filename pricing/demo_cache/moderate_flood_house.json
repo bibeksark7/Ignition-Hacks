@@ -27,12 +27,12 @@
         "wind_hail": 66.9
       }
     },
-    "annual_premium": 4141.36,
+    "annual_premium": 3259.61,
     "coverage_amount": 1150000,
     "perils": [
       {
         "name": "fire",
-        "premium": 1089.48,
+        "premium": 857.06,
         "multiplier": 1.263,
         "drivers": [
           {
@@ -54,7 +54,7 @@
       },
       {
         "name": "water",
-        "premium": 1674.46,
+        "premium": 1319.87,
         "multiplier": 1.713,
         "drivers": [
           {
@@ -76,7 +76,7 @@
       },
       {
         "name": "wind_hail",
-        "premium": 1070.65,
+        "premium": 841.23,
         "multiplier": 1.33,
         "drivers": [
           {
@@ -99,46 +99,28 @@
     ],
     "mitigations": [
       {
-        "action": "Install gutter guards",
-        "cost": 350,
-        "annual_saving": 34.78,
-        "payback_years": 10.1,
-        "peril": "wind_hail",
-        "risk_score_delta": 0.8,
-        "co_benefit": "Prevents debris backup that contributes to water intrusion during storms"
-      },
-      {
-        "action": "Convert driveway to permeable pavers",
-        "cost": 4500,
-        "annual_saving": 296.13,
-        "payback_years": 15.2,
-        "peril": "water",
-        "risk_score_delta": 8.7,
-        "co_benefit": "Lets stormwater infiltrate instead of overloading storm sewers"
-      },
-      {
         "action": "Install ember-resistant vents",
-        "cost": 1200,
-        "annual_saving": 65.21,
-        "payback_years": 18.4,
+        "cost": 700,
+        "annual_saving": 51.29,
+        "payback_years": 13.6,
         "peril": "fire",
         "risk_score_delta": 1.9,
         "co_benefit": "Stops wind-blown embers from entering the attic during a nearby fire"
       },
       {
         "action": "Repair and reseal roof",
-        "cost": 2200,
-        "annual_saving": 91.6,
-        "payback_years": 24.0,
+        "cost": 1400,
+        "annual_saving": 72.03,
+        "payback_years": 19.4,
         "peril": "wind_hail",
         "risk_score_delta": 2.2,
         "co_benefit": "A sound roof surface sheds water and survives hail impact better"
       },
       {
         "action": "Remove limbs overhanging roof",
-        "cost": 800,
-        "annual_saving": 29.35,
-        "payback_years": 27.3,
+        "cost": 500,
+        "annual_saving": 23.08,
+        "payback_years": 21.7,
         "peril": "fire",
         "risk_score_delta": 0.9,
         "co_benefit": "Reduces ignition pathway to structure"
@@ -146,32 +128,50 @@
       {
         "action": "Install a backwater valve",
         "cost": 2500,
-        "annual_saving": 84.46,
-        "payback_years": 29.6,
+        "annual_saving": 66.57,
+        "payback_years": 37.6,
         "peril": "water",
         "risk_score_delta": 2.5,
         "co_benefit": "Stops sewer backup into the home during heavy rainfall events"
       },
       {
+        "action": "Convert driveway to permeable pavers",
+        "cost": 9000,
+        "annual_saving": 233.41,
+        "payback_years": 38.6,
+        "peril": "water",
+        "risk_score_delta": 8.7,
+        "co_benefit": "Lets stormwater infiltrate instead of overloading storm sewers"
+      },
+      {
+        "action": "Install gutter guards",
+        "cost": 1100,
+        "annual_saving": 27.32,
+        "payback_years": 40.3,
+        "peril": "wind_hail",
+        "risk_score_delta": 0.8,
+        "co_benefit": "Prevents debris backup that contributes to water intrusion during storms"
+      },
+      {
         "action": "Clear vegetation within 5m of structure",
-        "cost": 650,
-        "annual_saving": 11.65,
-        "payback_years": 55.8,
+        "cost": 1200,
+        "annual_saving": 9.16,
+        "payback_years": 131.0,
         "peril": "fire",
         "risk_score_delta": 0.4,
         "co_benefit": "Removes the primary ember-ignition pathway (a standard WUI mitigation)"
       },
       {
         "action": "Upgrade to a Class-A fire-rated metal roof",
-        "cost": 14000,
-        "annual_saving": 80.11,
-        "payback_years": 174.8,
+        "cost": 32000,
+        "annual_saving": 62.97,
+        "payback_years": 508.2,
         "peril": "fire",
         "risk_score_delta": 2.0,
         "co_benefit": "Non-combustible roofing survives ember exposure and radiant heat, and holds up to hail"
       }
     ],
-    "premium_if_all_actions": 3448.1,
+    "premium_if_all_actions": 2713.75,
     "risk_score_if_all_actions": {
       "overall": 76.0,
       "grade": "C",
@@ -185,6 +185,8 @@
     "home_value_estimate": 1150000,
     "home_value_basis": "synthetic fixture \u2014 not a real estimate",
     "home_value_confidence": "low",
-    "premium_pct_of_value": 0.0036
+    "premium_pct_of_value": 0.0028,
+    "measurement_confidence": 0.85,
+    "low_confidence_warning": false
   }
 }

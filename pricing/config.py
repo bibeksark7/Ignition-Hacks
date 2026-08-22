@@ -1,17 +1,20 @@
 """Tunable constants for the pricing engine. Retune numbers here, not in the logic files.
 
-Every constant below is a modelling assumption, not a measured fact — flag any of
-these that need a real citation to Workstream 04 before the pitch.
+Every dollar figure below is anchored to a real published source (cited inline),
+not invented. They're still averages/estimates standing in for a real actuarial
+rate table, so keep the "demonstration model" framing regardless.
 """
 
-# Base rate per $100 of coverage, per peril. Chosen so a moderately-at-risk
-# suburban home (multiplier ~1.3-1.5) lands near published Canadian average
-# home insurance premiums. TODO(workstream-04): confirm against IBC/Ratehub
-# figures before quoting this in the pitch.
+# Base rate per $100 of coverage, per peril. Calibrated so a low-risk baseline
+# house (multiplier ~= 1.0) lands near the published Canadian national average
+# home insurance premium: ~$1,200/yr (Insurance Bureau of Canada) to ~$1,340/yr
+# (Ratehub/BlueCouch, 2026). At $650k coverage that's ~$1,270/yr at baseline;
+# a moderately-at-risk house (multiplier ~1.3-1.5) lands higher, consistent
+# with e.g. Alberta's ~$1,800-2,000/yr average amid +11.9% YoY increases.
 BASE_RATES = {
-    "fire": 0.075,
-    "water": 0.085,
-    "wind_hail": 0.070,
+    "fire": 0.059,
+    "water": 0.067,
+    "wind_hail": 0.055,
 }
 
 EXPENSE_LOAD = 0.08  # insurer overhead/admin loading applied to the summed peril premiums
@@ -93,44 +96,58 @@ GRADE_THRESHOLDS = [(90, "A"), (80, "B"), (65, "C"), (50, "D"), (0, "F")]
 #   "direct_effect"   -> for fixes not tied to a vision-measured feature
 #                        (e.g. backwater valve), apply a fixed multiplier
 #                        reduction to one peril directly.
-# Costs are illustrative round numbers. TODO(workstream-04): source real
-# Canadian costs before the pitch.
+# Every cost is anchored to a 2025/2026 Canadian pricing source (cited per
+# entry) rather than an invented round number.
 MITIGATION_CATALOGUE = [
     {
         # "cap" reflects what this specific fix actually achieves: trimming
         # overhanging limbs clears the roof overlap down near zero regardless
         # of the starting percentage, rather than removing a fixed amount.
+        # Cost: tree limb removal runs $75-400/limb (HomeStars, Omar Tree
+        # Service); a full overhanging section is typically several limbs.
         "action": "Remove limbs overhanging roof",
         "mode": "feature",
         "feature": "canopy_overlap_pct",
         "cap": 5.0,
-        "cost": 800,
+        "cost": 500,
         "peril": "fire",
         "co_benefit": "Reduces ignition pathway to structure",
     },
     {
+        # Cost: professional vegetation management in Canada runs $800-12,000
+        # depending on property size (The Goat Land Clearing, BC); this is a
+        # 5m-perimeter job, the low end of that range.
         "action": "Clear vegetation within 5m of structure",
         "mode": "feature",
         "feature": "canopy_within_5m_pct",
         "cap": 10.0,
-        "cost": 650,
+        "cost": 1200,
         "peril": "fire",
         "co_benefit": "Removes the primary ember-ignition pathway (a standard WUI mitigation)",
     },
     {
+        # Cost: mesh retrofit materials run $200-800 for a typical home
+        # (US Made Supply); full intumescent-vent professional installs run
+        # $2,500-4,000 (Headwaters Economics) - this sits at the materials
+        # end with modest labour.
         "action": "Install ember-resistant vents",
         "mode": "direct_effect",
         "peril": "fire",
         "multiplier_delta": -0.07,
-        "cost": 1200,
+        "cost": 700,
         "co_benefit": "Stops wind-blown embers from entering the attic during a nearby fire",
     },
     {
+        # Cost: metal roofing runs $13-30/sqft installed in Canada in 2026
+        # (RenoQuotes, Professional Metal Roofing); a ~2,000 sqft roof at the
+        # lower-mid end of that range is ~$32,000, consistent with total
+        # project quotes of $15,000-36,000. Intentionally the longest-payback
+        # item in the catalogue - a resilience investment, not a quick ROI.
         "action": "Upgrade to a Class-A fire-rated metal roof",
         "mode": "feature",
         "feature": "roof_material",
         "set_value": "metal",
-        "cost": 14000,
+        "cost": 32000,
         "peril": "fire",
         "co_benefit": "Non-combustible roofing survives ember exposure and radiant heat, and holds up to hail",
     },
@@ -138,15 +155,21 @@ MITIGATION_CATALOGUE = [
         # Cap, not a flat delta: converting the driveway/patio realistically
         # gets a lot bounded to a low residual imperviousness, not a fixed
         # percentage-point cut, since the fix targets the whole paved area.
+        # Cost: permeable pavers run $10-38/sqft installed in Canada
+        # (Toronto $24-38, Quebec $15-35, HomeGuide $10-30); a ~500 sqft
+        # driveway at the blended mid-range lands around $9,000.
         "action": "Convert driveway to permeable pavers",
         "mode": "feature",
         "feature": "impervious_pct",
         "cap": 20.0,
-        "cost": 4500,
+        "cost": 9000,
         "peril": "water",
         "co_benefit": "Lets stormwater infiltrate instead of overloading storm sewers",
     },
     {
+        # Cost: Ontario backwater valve installs run $1,800-4,500
+        # (avg. ~$2,400 interior basement, PlumbingQuotes/Premier Plumbing);
+        # Quebec accessible installs run $800-4,500 depending on access.
         "action": "Install a backwater valve",
         "mode": "direct_effect",
         "peril": "water",
@@ -155,20 +178,25 @@ MITIGATION_CATALOGUE = [
         "co_benefit": "Stops sewer backup into the home during heavy rainfall events",
     },
     {
+        # Cost: Canadian roof repair averages ~$1,000/job, range $500-1,800
+        # (HomeStars); this is a fuller reseal beyond simple flashing so
+        # sits toward the upper end.
         "action": "Repair and reseal roof",
         "mode": "feature",
         "feature": "roof_damage_score",
         "cap": 0.05,
-        "cost": 2200,
+        "cost": 1400,
         "peril": "wind_hail",
         "co_benefit": "A sound roof surface sheds water and survives hail impact better",
     },
     {
+        # Cost: average Canadian gutter guard project runs ~$1,050
+        # (lfbuilders, SRS Roofing); a typical 200ft home runs $1,400-2,200.
         "action": "Install gutter guards",
         "mode": "direct_effect",
         "peril": "wind_hail",
         "multiplier_delta": -0.04,
-        "cost": 350,
+        "cost": 1100,
         "co_benefit": "Prevents debris backup that contributes to water intrusion during storms",
     },
 ]

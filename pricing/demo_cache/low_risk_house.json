@@ -27,12 +27,12 @@
         "wind_hail": 77.8
       }
     },
-    "annual_premium": 2738.05,
+    "annual_premium": 2154.99,
     "coverage_amount": 890000,
     "perils": [
       {
         "name": "fire",
-        "premium": 722.9,
+        "premium": 568.68,
         "multiplier": 1.083,
         "drivers": [
           {
@@ -54,7 +54,7 @@
       },
       {
         "name": "water",
-        "premium": 1071.58,
+        "premium": 844.66,
         "multiplier": 1.417,
         "drivers": [
           {
@@ -76,7 +76,7 @@
       },
       {
         "name": "wind_hail",
-        "premium": 740.75,
+        "premium": 582.02,
         "multiplier": 1.189,
         "drivers": [
           {
@@ -99,19 +99,10 @@
     ],
     "mitigations": [
       {
-        "action": "Install gutter guards",
-        "cost": 350,
-        "annual_saving": 26.91,
-        "payback_years": 13.0,
-        "peril": "wind_hail",
-        "risk_score_delta": 0.8,
-        "co_benefit": "Prevents debris backup that contributes to water intrusion during storms"
-      },
-      {
         "action": "Install ember-resistant vents",
-        "cost": 1200,
-        "annual_saving": 50.46,
-        "payback_years": 23.8,
+        "cost": 700,
+        "annual_saving": 39.7,
+        "payback_years": 17.6,
         "peril": "fire",
         "risk_score_delta": 1.9,
         "co_benefit": "Stops wind-blown embers from entering the attic during a nearby fire"
@@ -119,24 +110,33 @@
       {
         "action": "Install a backwater valve",
         "cost": 2500,
-        "annual_saving": 65.36,
-        "payback_years": 38.2,
+        "annual_saving": 51.52,
+        "payback_years": 48.5,
         "peril": "water",
         "risk_score_delta": 2.5,
         "co_benefit": "Stops sewer backup into the home during heavy rainfall events"
       },
       {
+        "action": "Install gutter guards",
+        "cost": 1100,
+        "annual_saving": 21.15,
+        "payback_years": 52.0,
+        "peril": "wind_hail",
+        "risk_score_delta": 0.8,
+        "co_benefit": "Prevents debris backup that contributes to water intrusion during storms"
+      },
+      {
         "action": "Convert driveway to permeable pavers",
-        "cost": 4500,
-        "annual_saving": 8.99,
-        "payback_years": 500.6,
+        "cost": 9000,
+        "annual_saving": 7.09,
+        "payback_years": 1269.4,
         "peril": "water",
         "risk_score_delta": 0.4,
         "co_benefit": "Lets stormwater infiltrate instead of overloading storm sewers"
       },
       {
         "action": "Remove limbs overhanging roof",
-        "cost": 800,
+        "cost": 500,
         "annual_saving": 0.0,
         "payback_years": null,
         "peril": "fire",
@@ -145,7 +145,7 @@
       },
       {
         "action": "Clear vegetation within 5m of structure",
-        "cost": 650,
+        "cost": 1200,
         "annual_saving": 0.0,
         "payback_years": null,
         "peril": "fire",
@@ -154,7 +154,7 @@
       },
       {
         "action": "Upgrade to a Class-A fire-rated metal roof",
-        "cost": 14000,
+        "cost": 32000,
         "annual_saving": 0.0,
         "payback_years": null,
         "peril": "fire",
@@ -163,7 +163,7 @@
       },
       {
         "action": "Repair and reseal roof",
-        "cost": 2200,
+        "cost": 1400,
         "annual_saving": 0.0,
         "payback_years": null,
         "peril": "wind_hail",
@@ -171,7 +171,7 @@
         "co_benefit": "A sound roof surface sheds water and survives hail impact better"
       }
     ],
-    "premium_if_all_actions": 2586.32,
+    "premium_if_all_actions": 2035.54,
     "risk_score_if_all_actions": {
       "overall": 79.1,
       "grade": "C",
@@ -185,6 +185,8 @@
     "home_value_estimate": 890000,
     "home_value_basis": "synthetic fixture \u2014 not a real estimate",
     "home_value_confidence": "low",
-    "premium_pct_of_value": 0.0031
+    "premium_pct_of_value": 0.0024,
+    "measurement_confidence": 0.9,
+    "low_confidence_warning": false
   }
 }
