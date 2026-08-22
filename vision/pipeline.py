@@ -9,9 +9,29 @@ from . import geocode, imagery, segmentation, features, footprints, valuation
 # guarantees the score and the premium can never contradict each other.
 
 
-def _confidence(is_precise_match: bool, roof_plausible: bool, roof_matches_footprint: bool) -> float:
+def _confidence(
+    is_precise_match: bool,
+    roof_plausible: bool,
+    roof_matches_footprint: bool,
+    footprint_available: bool = True,
+) -> float:
+    """Confidence in this analysis, 0-1.
+
+    `footprint_available` matters more than it looks. When OSM has no
+    footprint here, roof_matches_footprint() has nothing to compare against
+    and returns True - so the cross-check silently passes at exactly the
+    moment it can't actually check anything. That combination has already
+    reported a 3.6 sq m mask (a rooftop vent, segmented from a bare point
+    prompt after the Overpass lookup failed) at full 0.75 confidence, with
+    nothing downstream aware the number was meaningless. Missing footprint
+    data is genuinely less certain, so it caps out below the pricing
+    engine's low-confidence threshold and surfaces a warning in the UI
+    rather than passing as a solid result.
+    """
     if not roof_plausible or not roof_matches_footprint:
         return 0.15
+    if not footprint_available:
+        return 0.35
     return 0.75 if is_precise_match else 0.35
 
 
@@ -98,7 +118,7 @@ def analyze_at_with_images(
         if x2 > x1 and y2 > y1:
             prompt_bbox = (x1, y1, x2, y2)
 
-    roof_mask = segmentation.segment_roof(image, prompt_point, prompt_bbox)
+    roof_mask = segmentation.segment_roof(image, prompt_point, prompt_bbox, m_per_px=m_per_px)
     canopy_mask = segmentation.segment_canopy(image)
     roof_plausible = features.roof_segmentation_is_plausible(roof_mask)
 
@@ -134,7 +154,12 @@ def analyze_at_with_images(
         "nearest_structure_m": features.nearest_structure_m(osm["nearest_structure_m"]),
         "address_precision": address_precision,
         "roof_segmentation_plausible": roof_plausible and roof_matches_footprint,
-        "confidence": _confidence(is_precise_match, roof_plausible, roof_matches_footprint),
+        "confidence": _confidence(
+            is_precise_match,
+            roof_plausible,
+            roof_matches_footprint,
+            footprint_available=osm["target_area_m2"] is not None,
+        ),
     }
 
     value = valuation.estimate_value(

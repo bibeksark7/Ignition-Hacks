@@ -13,7 +13,22 @@ def _get_sam():
     return _sam_model
 
 
-def segment_roof(image: np.ndarray, point_xy: tuple, bbox_xyxy: tuple = None) -> np.ndarray:
+# Smaller than any real house, so a mask under this came from a rooftop
+# vent, a skylight or a shadow patch rather than a roof.
+_DEGENERATE_ROOF_M2 = 25.0
+# Half-width of the fallback prompt box. Covers a typical detached or
+# semi-detached footprint (the demo set's real OSM footprints run 92-146
+# sq m) without reaching so far that SAM prefers the whole terrace.
+_FALLBACK_BOX_HALF_M = 10.0
+
+
+def _mask_from(results) -> np.ndarray:
+    return results[0].masks.data[0].cpu().numpy().astype(np.uint8)
+
+
+def segment_roof(
+    image: np.ndarray, point_xy: tuple, bbox_xyxy: tuple = None, m_per_px: float = None
+) -> np.ndarray:
     """Roof mask from SAM. A single point prompt is ambiguous for a complex
     multi-plane roof - SAM will happily segment just the one plane or
     shadow patch touching that pixel instead of the whole structure. When
@@ -31,8 +46,29 @@ def segment_roof(image: np.ndarray, point_xy: tuple, bbox_xyxy: tuple = None) ->
     kwargs = {"points": [list(point_xy)], "labels": [1], "verbose": False}
     if bbox_xyxy is not None:
         kwargs["bboxes"] = [list(bbox_xyxy)]
-    results = model(image, **kwargs)
-    mask = results[0].masks.data[0].cpu().numpy().astype(np.uint8)
+    mask = _mask_from(model(image, **kwargs))
+
+    # With no OSM footprint there's no box to prompt with, and a bare point
+    # is weak enough that SAM regularly returns a single roof feature
+    # instead of the roof (observed: 3.6 sq m from a point that landed on a
+    # vent, on an address that returns 428 sq m when the footprint lookup
+    # succeeds). Retrying with a house-sized box around the same point
+    # gives SAM the "whole object filling this region" bias the OSM bbox
+    # normally provides. Only runs when there was no box and the result is
+    # already degenerate, so it cannot change a healthy segmentation.
+    if bbox_xyxy is None and m_per_px is not None:
+        if mask.sum() * (m_per_px ** 2) < _DEGENERATE_ROOF_M2:
+            half_px = _FALLBACK_BOX_HALF_M / m_per_px
+            x, y = point_xy
+            h, w = image.shape[:2]
+            fallback_box = [
+                max(0.0, x - half_px), max(0.0, y - half_px),
+                min(float(w), x + half_px), min(float(h), y + half_px),
+            ]
+            retry = _mask_from(model(image, bboxes=[fallback_box],
+                                     points=[list(point_xy)], labels=[1], verbose=False))
+            if retry.sum() > mask.sum():
+                mask = retry
 
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (27, 27))
     closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
