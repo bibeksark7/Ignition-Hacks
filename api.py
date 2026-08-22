@@ -1,10 +1,14 @@
 import base64
 import io
+import logging
 
 import cv2
 import numpy as np
+import requests
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+
+logger = logging.getLogger("sightline.api")
 
 from vision.pipeline import analyze_with_images, analyze_at_with_images
 from vision.cache import load as cache_load, save as cache_save
@@ -65,10 +69,24 @@ def analyze_endpoint(
         if cached is not None:
             return cached
 
-    if address:
-        result, images = analyze_with_images(address)
-    else:
-        result, images = analyze_at_with_images(lat, lon)
+    try:
+        if address:
+            result, images = analyze_with_images(address)
+        else:
+            result, images = analyze_at_with_images(lat, lon)
+    except ValueError as e:
+        # geocode.geocode raises this when the address has no match
+        raise HTTPException(404, str(e))
+    except RuntimeError as e:
+        # e.g. imagery.fetch_tile when MAPBOX_TOKEN isn't configured
+        raise HTTPException(500, f"Server configuration error: {e}")
+    except requests.HTTPError as e:
+        raise HTTPException(502, f"Upstream imagery/geocoding service error: {e}")
+    except requests.RequestException as e:
+        raise HTTPException(504, f"Upstream service timeout or connection error: {e}")
+    except Exception:
+        logger.exception("Unexpected error analyzing %s", cache_key)
+        raise HTTPException(500, "Internal error processing this address.")
 
     pricing = {}
     if price_analyze is not None:
@@ -76,6 +94,10 @@ def analyze_endpoint(
             pricing = price_analyze(result, coverage_amount=None)
         except ValueError as e:
             raise HTTPException(422, str(e))
+        except Exception:
+            # Don't let a pricing bug throw away the vision half of the
+            # response, which is already computed - degrade gracefully.
+            logger.exception("Pricing engine failed, returning vision-only response")
 
     response = {**_build_response(result, images), **pricing}
     cache_save(cache_key, response)

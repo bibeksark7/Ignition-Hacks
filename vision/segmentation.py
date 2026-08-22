@@ -39,12 +39,30 @@ def segment_canopy(image: np.ndarray) -> np.ndarray:
     return green_mask & textured
 
 
+def segment_pool(image: np.ndarray) -> np.ndarray:
+    """Swimming pool water: saturated blue/turquoise, distinct from the
+    low-saturation grey of pavement/concrete. Called out explicitly in
+    the project brief as a naive-thresholding trap - without this, pale
+    or sun-glared pool water reads as impervious pavement."""
+    # Saturation bound is lower than a strict "pool blue" to also catch
+    # pale/sun-glared water (chlorine-blue lap pools often wash out nearly
+    # white) - hue stays tightly bounded to cyan/blue since that's what
+    # keeps this from also matching grey pavement.
+    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+    lower = np.array([85, 20, 120])
+    upper = np.array([130, 255, 255])
+    return cv2.inRange(hsv, lower, upper).astype(bool)
+
+
 def segment_impervious(image: np.ndarray, exclude_mask: np.ndarray = None) -> np.ndarray:
-    """Grey asphalt/concrete via HSV thresholding (low saturation, mid-high value)."""
+    """Grey asphalt/concrete via HSV thresholding (low saturation, mid-high
+    value). Pools are excluded - see segment_pool - since a pool is not
+    pavement, even though naive thresholding often confuses the two."""
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
     lower = np.array([0, 0, 60])
     upper = np.array([180, 40, 210])
     mask = cv2.inRange(hsv, lower, upper).astype(bool)
+    mask &= ~segment_pool(image)
     if exclude_mask is not None:
         mask &= ~exclude_mask
     return mask
