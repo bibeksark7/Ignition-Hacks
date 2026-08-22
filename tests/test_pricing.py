@@ -2,6 +2,7 @@ import copy
 
 import pytest
 
+from pricing import config
 from pricing.engine import analyze
 from pricing.hazards import HazardFactors, lookup_hazards
 from pricing.risk_model import compute_multipliers, score_from_multiplier
@@ -58,6 +59,21 @@ def test_hazards_demo_contrast_jasper_vs_gta_diverges_sharply():
     # Same physical measurements, different location -> fire risk should
     # clearly favour the GTA house over the Jasper house.
     assert jasper_result["risk_score"]["perils"]["fire"] < gta_result["risk_score"]["perils"]["fire"]
+
+
+# Must match vision/features.py's _ROOF_MATERIAL_CLASSES on Workstream 01's
+# branch - if their classifier can produce a value that isn't a real key in
+# our risk tables, it silently falls back to DEFAULT_ROOF_MATERIAL_RISK
+# instead of erroring, which is exactly the kind of contract drift that's
+# already bitten us once (risk_score). This test forces the two lists to be
+# checked by hand whenever either side changes.
+WORKSTREAM_01_ROOF_MATERIAL_CLASSES = ["asphalt_shingle", "metal", "tile", "flat_gravel"]
+
+
+def test_every_workstream_01_roof_material_has_a_real_risk_entry():
+    for material in WORKSTREAM_01_ROOF_MATERIAL_CLASSES:
+        assert material in config.ROOF_MATERIAL_FIRE_RISK, f"{material} missing from ROOF_MATERIAL_FIRE_RISK"
+        assert material in config.ROOF_MATERIAL_WIND_RISK, f"{material} missing from ROOF_MATERIAL_WIND_RISK"
 
 
 def test_multiplier_increases_with_more_canopy_overlap():

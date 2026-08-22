@@ -50,6 +50,7 @@ ROOF_MATERIAL_FIRE_RISK = {
     "metal": 0.1,
     "tile": 0.15,
     "flat_membrane": 0.4,
+    "flat_gravel": 0.25,  # Workstream 01's classifier's actual label for flat roofs
 }
 
 ROOF_MATERIAL_WIND_RISK = {
@@ -58,6 +59,7 @@ ROOF_MATERIAL_WIND_RISK = {
     "metal": 0.2,
     "tile": 0.35,
     "flat_membrane": 0.55,
+    "flat_gravel": 0.6,  # gravel ballast scours and membrane lifts at high wind speeds
 }
 
 DEFAULT_ROOF_MATERIAL_RISK = 0.4  # used if roof_material isn't in the tables above
