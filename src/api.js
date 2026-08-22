@@ -1,3 +1,5 @@
+import { findDemoFixture, isDemoMode } from './demoData'
+
 // Override per-machine in .env.local (gitignored) as VITE_VISION_API_BASE / VITE_PRICING_API_BASE
 // so this doesn't need editing every time whoever's running a server changes.
 const VISION_API_BASE = import.meta.env.VITE_VISION_API_BASE || 'http://localhost:8000'
@@ -35,7 +37,23 @@ async function fetchPricing(contractA) {
 
 // Chains vision -> pricing since the two services aren't merged behind one
 // endpoint yet. Returns { ...contractA fields, ...imagery/mask fields, ...contractB fields }.
+//
+// With ?demo=1 in the URL this serves cached pricing-engine output instead of
+// touching the network (fallback ladder rung 4 in CONTEXT.md). The UI paints a
+// banner whenever that mode is on, so cached figures never read as live ones.
 export async function fetchAnalysis({ address, lat, lon }) {
+  if (isDemoMode()) {
+    const fixture = findDemoFixture({ lat, lon })
+    if (!fixture) {
+      throw new Error(
+        'Demo mode is on, but this location is not one of the three cached sample properties. Turn demo mode off, or pick a sample location.',
+      )
+    }
+    // Hold briefly so the pipeline steps are legible rather than flashing past.
+    await new Promise((r) => setTimeout(r, 2600))
+    return fixture
+  }
+
   const vision = await fetchVision({ address, lat, lon })
   const pricing = await fetchPricing(vision)
   return { ...vision, ...pricing }
