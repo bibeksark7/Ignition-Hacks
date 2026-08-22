@@ -100,12 +100,27 @@ def nearest_structure_m(osm_value: float = None) -> float:
     return osm_value if osm_value is not None else config.DEFAULT_NEAREST_STRUCTURE_M
 
 
-def lot_area_m2(osm_target_area_m2: float = None) -> float:
+_MAX_ROOF_TO_LOT_RATIO = 0.55  # a roof rarely covers more than ~55% of a suburban lot
+
+
+def lot_area_m2(osm_target_area_m2: float = None, roof_area_m2: float = None) -> float:
     """Lot size estimate. OSM has no cadastral parcel data, so this is a
-    footprint-based heuristic even when the building footprint itself is real."""
+    footprint-based heuristic even when the building footprint itself is
+    real - and that footprint can be outdated/undersized (a since-built
+    addition not yet re-surveyed, confirmed directly in testing). When a
+    confidently-measured roof would exceed this estimate, that's a sign
+    the lot estimate is too small, not that the roof is wrong - floor the
+    lot estimate at a plausible minimum for that roof instead of silently
+    presenting a lot smaller than the house sitting on it."""
     if osm_target_area_m2 is not None:
-        return round(osm_target_area_m2 * _LOT_TO_FOOTPRINT_RATIO, 1)
-    return config.DEFAULT_LOT_AREA_M2
+        estimate = osm_target_area_m2 * _LOT_TO_FOOTPRINT_RATIO
+    else:
+        estimate = config.DEFAULT_LOT_AREA_M2
+
+    if roof_area_m2 is not None:
+        estimate = max(estimate, roof_area_m2 / _MAX_ROOF_TO_LOT_RATIO)
+
+    return round(estimate, 1)
 
 
 def _dilate_by_radius_m(mask: np.ndarray, radius_m: float, m_per_px: float) -> np.ndarray:

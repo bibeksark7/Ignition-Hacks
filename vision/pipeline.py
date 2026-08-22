@@ -110,7 +110,7 @@ def analyze_at_with_images(
     )
 
     roof_area_m2 = features.mask_area_m2(roof_mask, m_per_px)
-    lot_area_m2 = features.lot_area_m2(osm["target_area_m2"])
+    lot_area_m2 = features.lot_area_m2(osm["target_area_m2"], roof_area_m2)
     roof_matches_footprint = features.roof_matches_footprint(roof_area_m2, osm["target_area_m2"])
 
     lot_mask = features.lot_region_mask(roof_mask, lot_area_m2, m_per_px)
