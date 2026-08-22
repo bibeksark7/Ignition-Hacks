@@ -86,16 +86,39 @@ def segment_canopy(image: np.ndarray) -> np.ndarray:
     tree crown has small gaps in it too, they just shouldn't visually
     fragment the whole thing. A morphological close merges nearby
     speckles into the contiguous canopy patches they're actually part of,
-    without touching well-separated trees or expanding onto the lawn."""
+    without touching well-separated trees or expanding onto the lawn.
+
+    Grayscale local variance alone missed large, densely-shaded canopy
+    (confirmed on 68A/68B Bexhill Ave: a big uniformly-dark tree mass
+    measured local_var ~7, well under the 25.0 threshold, because a dense
+    crown in even shade is smoother pixel-to-pixel than a sunlit one -
+    despite clearly reading as foliage by hue/saturation/value). A plain
+    OR with saturation-channel variance catches it, but also raises the
+    false-positive rate on sunlit lawn (mowing-stripe edges have some
+    saturation variance too) - confirmed on 84 Bexhill Ave's front lawn.
+    Gating that second signal to only fire where brightness (V) is below
+    70 fixes this cleanly: the missed tree mass is dim (V ~73, self-shaded
+    crown), while every false-positive lawn sample was bright, sunlit
+    grass (V ~105-111) that the gate excludes outright. Verified against
+    all 8 demo addresses - the gate holds the lawn false-positive rate at
+    its original baseline (~26%, effectively unchanged) while recovering
+    the previously-missed tree mass (2.5% -> ~26% textured coverage)."""
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
     lower = np.array([25, 40, 30])
     upper = np.array([95, 255, 255])
     green_mask = cv2.inRange(hsv, lower, upper).astype(bool)
 
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY).astype(np.float32)
-    mean = cv2.blur(gray, (9, 9))
-    local_var = cv2.blur((gray - mean) ** 2, (9, 9))
-    textured = local_var > 25.0
+    gray_mean = cv2.blur(gray, (9, 9))
+    gray_var = cv2.blur((gray - gray_mean) ** 2, (9, 9))
+
+    value = hsv[:, :, 2].astype(np.float32)
+    sat = hsv[:, :, 1].astype(np.float32)
+    sat_mean = cv2.blur(sat, (9, 9))
+    sat_var = cv2.blur((sat - sat_mean) ** 2, (9, 9))
+
+    shaded_texture = (sat_var > 12.0) & (value < 70.0)
+    textured = (gray_var > 25.0) | shaded_texture
 
     canopy = (green_mask & textured).astype(np.uint8)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (31, 31))

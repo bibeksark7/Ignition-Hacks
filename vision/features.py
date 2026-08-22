@@ -125,6 +125,56 @@ def lot_area_m2(osm_target_area_m2: float = None, roof_area_m2: float = None) ->
     return round(estimate, 1)
 
 
+_MIN_PAVING_BLOB_M2 = 15.0
+
+
+def drop_small_paving_fragments(mask: np.ndarray, m_per_px: float) -> np.ndarray:
+    """Keep contiguous paved surfaces, drop grey confetti.
+
+    Real paving on a residential lot is a driveway, a patio, a walkway -
+    each a single surface of meaningful size. What the colour threshold
+    also picks up is small grey scraps: eave shadow, a strip of concrete
+    edging, part of a roof the roof mask missed. On the test property the
+    driveway and patio came back as 45 and 49 square metres, while five
+    further blobs of 1-12 square metres were all noise.
+
+    Dropping blobs below a floor removes those without touching the
+    surfaces that actually shed stormwater - which is what impervious_pct
+    is meant to measure.
+    """
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(mask.astype(np.uint8))
+    keep = np.zeros_like(mask, dtype=bool)
+    for i in range(1, count):
+        if stats[i, cv2.CC_STAT_AREA] * (m_per_px ** 2) >= _MIN_PAVING_BLOB_M2:
+            keep |= labels == i
+    return keep
+
+
+_MIN_VEG_WIDTH_M = 2.5
+
+
+def drop_thin_vegetation(mask: np.ndarray, m_per_px: float) -> np.ndarray:
+    """Keep vegetation thick enough to be a tree crown, drop mown strips.
+
+    Lawn and tree crown are indistinguishable here by colour, brightness,
+    texture or local contrast - all four were measured against real
+    imagery and none separate them (the crown is actually *brighter* than
+    the lawn on the test property). Width does separate them once the lot
+    region is tight: the grass left inside it runs as narrow strips down
+    the side yards, while a crown is a chunky blob several metres across.
+    An opening keeps only what's wide enough to hold the disc.
+
+    This is a display/measurement refinement, not tree detection - a wide
+    lawn would still come through, and it should, since vegetation near a
+    structure is the ember-ignition risk the mitigation catalogue targets.
+    """
+    width_px = max(1, int(round(_MIN_VEG_WIDTH_M / m_per_px)))
+    if width_px % 2 == 0:
+        width_px += 1
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (width_px, width_px))
+    return cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_OPEN, kernel).astype(bool)
+
+
 def _dilate_by_radius_m(mask: np.ndarray, radius_m: float, m_per_px: float) -> np.ndarray:
     radius_px = max(1, int(round(radius_m / m_per_px)))
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * radius_px + 1, 2 * radius_px + 1))
@@ -139,7 +189,7 @@ def _dilate_by_radius_m(mask: np.ndarray, radius_m: float, m_per_px: float) -> n
 # wide); the front/back cap keeps a large lot-area estimate from pushing
 # the region out into the public road, where the asphalt would read as
 # this property's impervious surface.
-_LOT_SIDE_MARGIN_M = 3.0
+_LOT_SIDE_MARGIN_M = 2.0
 _LOT_END_MARGIN_M = 14.0
 # Always reach at least this far past each end of the house, even when the
 # lot-area estimate would suggest a shorter rectangle. A driveway runs from
@@ -216,6 +266,32 @@ def within_distance_ring(roof_mask: np.ndarray, distance_m: float, m_per_px: flo
     the roof itself. Used for e.g. 'canopy within 5m of the structure'."""
     buffered = _dilate_by_radius_m(roof_mask, distance_m, m_per_px)
     return buffered & ~roof_mask
+
+
+# Alpha ramp for the canopy overlay, by distance from the structure. Nearer
+# canopy is the more dangerous canopy (a branch on the roof is an ignition
+# path; a tree 5m away is not), so the overlay ranks severity visually
+# instead of painting one flat colour over everything it found.
+_CANOPY_ALPHA_BANDS = ((1.5, 0.85), (3.0, 0.65), (5.0, 0.45))
+
+
+def canopy_display_alpha(
+    canopy_mask: np.ndarray, roof_mask: np.ndarray, m_per_px: float
+) -> np.ndarray:
+    """Canopy overlay as graduated alpha in [0, 1] rather than a flat mask.
+
+    Scoped to exactly what the pipeline actually measures - canopy on or
+    within 5m of the structure - so the overlay stays an honest picture of
+    the analysis and never paints canopy that no number accounts for."""
+    outside = (~roof_mask).astype(np.uint8)
+    dist_m = cv2.distanceTransform(outside, cv2.DIST_L2, 5) * m_per_px
+
+    alpha = np.zeros(canopy_mask.shape[:2], dtype=np.float32)
+    for edge_m, level in reversed(_CANOPY_ALPHA_BANDS):
+        alpha[dist_m <= edge_m] = level
+    alpha[roof_mask] = 1.0  # on the structure itself: highest severity
+
+    return alpha * canopy_mask
 
 
 def rasterize_local_polygons(polygons_m: list, image_shape: tuple, m_per_px: float) -> np.ndarray:

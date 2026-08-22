@@ -803,16 +803,14 @@ function App() {
       <main className="shell">
         {!data && !loading && (
           <section className="intro">
-            <div className="intro-copy">
-              <h1 className="intro-title">
-                <StaggeredWords text="See what your home’s risk is really costing you." />
-              </h1>
-              <p className="intro-lede">
-                We measure your roof, vegetation and paving from the aerial photo, then show which
-                fixes pay for themselves.
-              </p>
-              <AddressMap onConfirm={handleAnalyze} loading={loading} />
-            </div>
+            <h1 className="intro-title">
+              <StaggeredWords text="See what your home’s risk is really costing you." />
+            </h1>
+            <p className="intro-lede">
+              We measure your roof, vegetation and paving from the aerial photo, then show which
+              fixes pay for themselves.
+            </p>
+            <AddressMap onConfirm={handleAnalyze} loading={loading} />
           </section>
         )}
 
