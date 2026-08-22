@@ -721,13 +721,21 @@
   -webkit-mask-size: cover;
   -webkit-mask-position: center;
   -webkit-mask-repeat: no-repeat;
-  opacity: 0.62;
-  mix-blend-mode: multiply;
+  opacity: 0.72;
+  mix-blend-mode: normal;
   pointer-events: none;
 }
 
+/* The overlay uses stronger colours than the rest of the palette on purpose.
+   The page tints (--roof/--canopy/--water) are pale by design and read well
+   as chips on white, but painted over a satellite photo at partial opacity
+   they disappear into the imagery - and this overlay is the one thing in the
+   product a viewer has to be able to read at a glance. Multiply made it
+   worse: it darkens toward whatever is underneath, so a pale tint over grey
+   asphalt barely moved the pixels. Saturated colour, normal blend. The
+   legend chips keep the soft palette, so the hues still correspond. */
 .mask-roof {
-  background: var(--roof);
+  background: #e2643a;
 }
 
 /* Canopy is the one layer whose tint matches what sits under it, so multiply
@@ -738,13 +746,13 @@
    covers 0.72% of the tile and was effectively invisible.
    Palette is untouched - this is blend and opacity only. */
 .mask-canopy {
-  background: var(--canopy);
+  background: #3f9e5c;
   mix-blend-mode: normal;
-  opacity: 0.85;
+  opacity: 0.78;
 }
 
 .mask-water {
-  background: var(--water);
+  background: #3f74d6;
 }
 
 .evidence-caption {
