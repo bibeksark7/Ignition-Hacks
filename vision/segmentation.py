@@ -14,18 +14,33 @@ def _get_sam():
 
 
 def segment_roof(image: np.ndarray, point_xy: tuple) -> np.ndarray:
-    """Zero-shot roof mask from a single point prompt at the parcel centre."""
+    """Zero-shot roof mask from a single point prompt at the parcel centre.
+
+    SAM's raw output often has small holes around roof vents, ridge lines,
+    and shadowed patches - real gaps in an otherwise coherent roof, not
+    signal. A morphological close (dilate then erode) bridges those without
+    growing the mask's actual outer boundary."""
     model = _get_sam()
     results = model(image, points=[list(point_xy)], labels=[1], verbose=False)
-    mask = results[0].masks.data[0].cpu().numpy()
-    return mask.astype(bool)
+    mask = results[0].masks.data[0].cpu().numpy().astype(np.uint8)
+
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+    closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    return closed.astype(bool)
 
 
 def segment_canopy(image: np.ndarray) -> np.ndarray:
     """Tree canopy via HSV thresholding, distinguished from flat lawn by
     local texture: tree cover has leaf/shadow variance that mowed grass
     doesn't, so a low-variance green region is classified as lawn, not
-    canopy - the two carry very different fire risk."""
+    canopy - the two carry very different fire risk.
+
+    The raw texture filter fires on individual leaf clusters/shadow gaps,
+    which reads as sparse speckles rather than a canopy shape - a real
+    tree crown has small gaps in it too, they just shouldn't visually
+    fragment the whole thing. A morphological close merges nearby
+    speckles into the contiguous canopy patches they're actually part of,
+    without touching well-separated trees or expanding onto the lawn."""
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
     lower = np.array([25, 40, 30])
     upper = np.array([95, 255, 255])
@@ -36,7 +51,10 @@ def segment_canopy(image: np.ndarray) -> np.ndarray:
     local_var = cv2.blur((gray - mean) ** 2, (9, 9))
     textured = local_var > 25.0
 
-    return green_mask & textured
+    canopy = (green_mask & textured).astype(np.uint8)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (31, 31))
+    closed = cv2.morphologyEx(canopy, cv2.MORPH_CLOSE, kernel)
+    return closed.astype(bool)
 
 
 def segment_pool(image: np.ndarray) -> np.ndarray:
