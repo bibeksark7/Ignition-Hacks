@@ -1,0 +1,810 @@
+/* ---------------------------------------------------------------------------
+   PLAN OF SURVEY — sheet treatment
+
+   Loaded after App.css tokens so it can restate surfaces the earlier pass
+   styled as soft cards. Selectors here are single-class and match the existing
+   markup rather than adding wrappers, so nothing needs re-nesting to undo it.
+--------------------------------------------------------------------------- */
+
+/* Ruled, not rounded. A survey sheet has square corners and hairlines. */
+.panel,
+.stat-panel,
+.score-panel,
+.mitigation-card,
+.notice {
+  border-radius: 0;
+  border: 1px solid var(--line-strong);
+  box-shadow: none;
+  background: var(--surface);
+}
+
+/* Sheet lettering: the title block of a plan, letterspaced and set wide. */
+.intro-title,
+.report-address,
+.score-word,
+.section-head h2,
+.pipeline-title {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.report-address {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+/* Marginalia: eyebrows and labels are the annotation on a survey sheet, so
+   they take the instrument face, small, letterspaced, upper case. */
+.report-label,
+.stat-label,
+.score-eyebrow,
+.section-lede + *,
+.peril-name,
+.stat-sub,
+.measure-label {
+  font-family: var(--mono);
+}
+
+.report-label,
+.stat-label,
+.score-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+/* Every measured figure is instrument output: mono, tabular, tight. This is
+   the page's whole claim - these are measurements, not estimates typed in. */
+.stat-figure,
+.score-value,
+.tnum,
+.peril-amount,
+.mitigation-stat-value,
+.measure-value {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.stat-figure {
+  font-size: clamp(2.1rem, 5vw, 3.2rem);
+  line-height: 1;
+  color: var(--ink);
+}
+
+/* The plate: imagery is a photographic print mounted on the sheet, so it gets
+   a dark surround and a hard edge rather than a soft card. */
+.evidence-image,
+.imagery {
+  border-radius: 0;
+  background-color: var(--plate);
+}
+
+.evidence-image {
+  border: 1px solid var(--ink);
+  padding: 10px;
+  background: var(--plate);
+}
+
+/* --- Signature: registration offset -----------------------------------------
+   Goad's colour plates were printed a fraction out of register with the black
+   linework, so a sliver of colour sits proud of the line it belongs to. That
+   misregistration is the tell of the process, and this page is that process
+   run again by machine - so the masks sit two pixels off, and snap into
+   register when you interrogate them. Hovering the plate is the modern
+   equivalent of squaring the plate up on the press.
+--------------------------------------------------------------------------- */
+.mask {
+  transform: translate3d(2px, -2px, 0);
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mask-canopy { transform: translate3d(-2px, 1px, 0); }
+.mask-water  { transform: translate3d(1px, 2px, 0); }
+
+.imagery:hover .mask,
+.imagery:focus-within .mask {
+  transform: none;
+}
+
+/* Legend swatches stay round - a key on a plan uses filled dots, and it is the
+   one place curvature belongs. */
+.layer-toggle {
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.68rem;
+  border-radius: 999px;
+}
+
+/* Sheet frame: corner ticks in the margin, the way a plan sheet is trimmed.
+   Drawn on the page wrapper so it frames everything without a new element. */
+.page {
+  position: relative;
+}
+
+.page::before,
+.page::after {
+  content: '';
+  position: fixed;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.5;
+}
+
+.page::before {
+  top: 14px;
+  left: 14px;
+  border-top: 1px solid var(--line-strong);
+  border-left: 1px solid var(--line-strong);
+}
+
+.page::after {
+  bottom: 14px;
+  right: 14px;
+  border-bottom: 1px solid var(--line-strong);
+  border-right: 1px solid var(--line-strong);
+}
+
+@media (max-width: 700px) {
+  .page::before,
+  .page::after {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mask {
+    transform: none !important;
+    transition: none;
+  }
+}
+
+/* Sheet metadata sits in the masthead margin, small and quiet. */
+.sheet-meta {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+  margin-right: 1rem;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.wordmark {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 860px) {
+  .sheet-meta {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Hero: the plate is the argument
+--------------------------------------------------------------------------- */
+
+.intro {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: clamp(3rem, 8vh, 6rem) clamp(1.25rem, 4vw, 2rem);
+  text-align: center;
+}
+
+
+
+.intro-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* A live instrument reads as live. One slow pulse, nothing more. */
+.intro-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.72); }
+}
+
+.intro-title {
+  font-size: clamp(2.4rem, 5.2vw, 4.2rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+}
+
+.intro-lede {
+  margin: 1.15rem auto 0;
+  max-width: 46ch;
+  font-size: 1.05rem;
+  color: var(--ink-2);
+}
+
+
+
+/* --- the plate ------------------------------------------------------------ */
+
+.plate { position: relative; }
+
+.plate-frame {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--plate);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+}
+
+.plate-base,
+.plate-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.plate-base {
+  filter: saturate(0.86) contrast(1.06);
+}
+
+/* Masks land in pipeline order, each wiping down over the plate the way a
+   colour plate is rolled onto a sheet. */
+.plate-layer {
+  opacity: 0;
+  clip-path: inset(0 0 100% 0);
+  transition:
+    opacity 520ms ease,
+    clip-path 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 260ms ease;
+}
+
+.plate-layer.is-landed {
+  opacity: 1;
+  clip-path: inset(0 0 0 0);
+}
+
+.plate-layer.is-dimmed {
+  opacity: 0.14;
+}
+
+/* A single pass of the scanner, once, on load. */
+.plate-scan {
+  position: absolute;
+  inset-inline: 0;
+  height: 32%;
+  top: -32%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in srgb, var(--accent) 22%, transparent),
+    transparent
+  );
+  animation: scan 2.1s cubic-bezier(0.5, 0, 0.5, 1) 1 forwards;
+  pointer-events: none;
+}
+
+@keyframes scan {
+  to { top: 100%; }
+}
+
+.plate-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plate-key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 180ms ease, color 180ms ease, background-color 180ms ease;
+}
+
+.plate-key-item:hover,
+.plate-key-item.is-active {
+  border-color: var(--line-strong);
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.plate-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}
+
+.swatch-roof { background: var(--roof); }
+.swatch-canopy { background: var(--canopy); }
+.swatch-paved { background: var(--water); }
+
+/* --- theme toggle --------------------------------------------------------- */
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-left: 0.75rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 180ms ease, color 180ms ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.theme-toggle-track {
+  position: relative;
+  width: 26px;
+  height: 13px;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  border: 1px solid var(--line);
+}
+
+.theme-toggle-knob {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-theme='dark'] .theme-toggle-knob {
+  transform: translateX(13px);
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+    .plate-scan { animation: none; display: none; }
+  .intro-pulse { animation: none; }
+  .plate-layer { transition: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Headline figures as entry points
+
+   The two numbers people arrive at with a question attached are the cost and
+   the score. Both are buttons that take you to the section answering it, and
+   both say so on hover rather than relying on the reader to guess.
+--------------------------------------------------------------------------- */
+
+.stat-figure-link,
+.gauge-link {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+}
+
+.gauge-link { text-align: center; }
+
+.stat-figure-hint,
+.gauge-link-hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.stat-figure-link:hover .stat-figure-hint,
+.stat-figure-link:focus-visible .stat-figure-hint,
+.gauge-link:hover .gauge-link-hint,
+.gauge-link:focus-visible .gauge-link-hint {
+  opacity: 1;
+  transform: none;
+  color: var(--accent);
+}
+
+.stat-figure-link:hover,
+.gauge-link:hover { color: var(--accent); }
+
+/* When a jump lands, the destination says so briefly - otherwise a smooth
+   scroll can finish without the reader noticing anything moved. */
+.is-targeted {
+  animation: target-flash 1.4s ease-out 1;
+}
+
+@keyframes target-flash {
+  0%   { background-color: color-mix(in srgb, var(--accent) 14%, transparent); }
+  100% { background-color: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-targeted { animation: none; }
+  .stat-figure-hint,
+  .gauge-link-hint { opacity: 1; transform: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Title page
+--------------------------------------------------------------------------- */
+
+.title {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #0b0d16;
+}
+
+.title-bg {
+  position: absolute;
+  inset: -4%;
+  background: url('/bg/night-map.jpg') center / cover no-repeat;
+  transition: transform 1100ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* The map has to stay readable as a map while the type stays readable as
+   type, so the veil darkens toward the centre rather than flatly. */
+.title-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 52%, rgba(11, 13, 22, 0.86) 0%, rgba(11, 13, 22, 0.55) 45%, rgba(11, 13, 22, 0.78) 100%);
+}
+
+.title-mark {
+  position: absolute;
+  top: clamp(1.5rem, 4vh, 2.6rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: 1.05rem;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+  text-indent: 0.42em; /* balance the trailing letterspace so it reads centred */
+}
+
+.title-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 900px;
+  padding: 0 clamp(1.25rem, 5vw, 2rem);
+  text-align: center;
+  color: #fff;
+}
+
+.title-heading {
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 7vw, 5.4rem);
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+  color: #fff;
+  /* the proximity effect drives weight per letter, so no fixed weight here */
+  font-weight: normal;
+  font-variation-settings: 'wght' 200;
+  text-wrap: balance;
+}
+
+.title-sub {
+  margin: 1.6rem auto 0;
+  max-width: 46ch;
+  font-size: clamp(1rem, 1.6vw, 1.18rem);
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.title-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 2.6rem;
+  padding: 0.95rem 1.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-family: var(--display);
+  font-size: 0.98rem;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background-color 260ms ease, border-color 260ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.title-cta:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #fff;
+  transform: translateY(-2px);
+}
+
+.title-cta-arrow {
+  width: 19px;
+  height: 19px;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.title-cta:hover .title-cta-arrow { transform: translateX(5px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .title-bg { transition: none; }
+  .title-cta:hover { transform: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Section rail: jump between sections without reaching for the trackpad
+--------------------------------------------------------------------------- */
+
+.rail {
+  position: fixed;
+  right: clamp(0.75rem, 2vw, 1.5rem);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  display: grid;
+  gap: 0.55rem;
+  justify-items: center;
+}
+
+.rail-step {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: color 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.rail-step:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.06);
+}
+
+.rail-step svg { width: 15px; height: 15px; }
+
+.rail-dots {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.25rem 0;
+  padding: 0;
+  list-style: none;
+  justify-items: center;
+}
+
+.rail-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--line-strong);
+  cursor: pointer;
+  transition: background-color 200ms ease, transform 200ms ease;
+}
+
+.rail-dot:hover { transform: scale(1.35); }
+.rail-dot.is-current { background: var(--accent); transform: scale(1.35); }
+
+@media (max-width: 900px) {
+  .rail { display: none; }
+}
+
+/* --- interactive cost bar -------------------------------------------------- */
+
+.composition-seg {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity 200ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.composition-seg.is-held { transform: scaleY(1.28); }
+.composition-seg.is-muted { opacity: 0.32; }
+
+.composition-readout {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  min-height: 2.1rem;
+  margin-top: 0.85rem;
+  opacity: 0.55;
+  transition: opacity 200ms ease;
+}
+
+.composition-readout.is-shown { opacity: 1; }
+
+.composition-readout-idle,
+.composition-readout-share {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.composition-readout-key {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  align-self: center;
+}
+
+.composition-readout-key.tone-roof { background: var(--roof); }
+.composition-readout-key.tone-water { background: var(--water); }
+.composition-readout-key.tone-wind { background: var(--wind); }
+
+.composition-readout-name {
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.composition-readout-value {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* ---------------------------------------------------------------------------
+   Breathing room and hover feedback
+--------------------------------------------------------------------------- */
+
+/* The report was running edge to edge. Wider gutters and a capped measure
+   give the figures room and stop the eye travelling the full window width. */
+.shell,
+.report-head,
+.section {
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 5vw, 3.5rem);
+}
+
+.section + .section { margin-top: clamp(2.5rem, 6vh, 4.5rem); }
+
+/* One hover language for everything interactive: a cool blue wash against the
+   warm ground, a matching edge, and a small lift in size. Colour alone is not
+   enough of a signal, so the type grows very slightly with it. */
+.panel,
+.stat-panel,
+.mitigation-card,
+.plate-key-item,
+.theme-toggle,
+.rail-step,
+.demo-picks button {
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stat-panel:hover,
+.mitigation-card:hover,
+.demo-picks button:hover,
+.plate-key-item:hover,
+.theme-toggle:hover,
+.rail-step:hover {
+  background: var(--hover-wash);
+  border-color: var(--hover-line);
+  box-shadow: var(--shadow-md);
+}
+
+/* Scaling the whole card would blur its text on some displays, so the type
+   scales instead and the card stays put. */
+.stat-panel:hover .stat-figure,
+.mitigation-card:hover .mitigation-action {
+  font-size: 1.06em;
+}
+
+.stat-panel,
+.mitigation-card { cursor: default; }
+
+.stat-figure,
+.mitigation-action {
+  transition: font-size 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* --- estimated home value: show the working ------------------------------- */
+
+.value-panel {
+  border-color: var(--water) !important;
+  background: linear-gradient(180deg, var(--water-wash), var(--surface) 60%);
+}
+
+.value-source {
+  margin-top: 0.75rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.3rem;
+}
+
+.value-source-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.82rem;
+  color: var(--ink-2);
+}
+
+.value-source-row span:last-child {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.value-caveat {
+  margin-top: 0.55rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stat-panel:hover .stat-figure,
+  .mitigation-card:hover .mitigation-action { font-size: inherit; }
+}

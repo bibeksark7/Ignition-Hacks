@@ -1,86 +1,145 @@
 /* ---------------------------------------------------------------------------
    Sightline design tokens
 
-   Palette note: Charles E. Goad's fire insurance plans (the hook in our pitch)
-   colour-coded buildings by construction so an underwriter could price a block
-   without visiting it. We keep that semantic code, desaturated to pastel so a
-   full page of it stays calm:
+   Pastel dusk: peach, pink, lilac, periwinkle and orchid. The ground is a soft
+   lilac wash rather than white, so the page reads warm and the white cards on
+   it lift instead of disappearing.
 
-       terracotta = roof / fire     sage = canopy     blue = water / paving
-       wheat      = wind and hail
+   Perils keep one colour each, used everywhere that peril appears - the mask
+   over the photo, its band in the cost bar, its card in the fixes:
 
-   Theme is locked to light on purpose. The audience skews older, the palette is
-   pastel, and the submission is a recorded demo: one predictable rendering
-   beats a page that inverts depending on the judge's OS setting.
+       peach = fire     periwinkle = water     lilac = wind and hail
+       sage  = tree canopy
 
-   Radius rule, applied everywhere:
-       panels and cards 16px  ·  inputs, buttons, tiles 10px
-       chips and toggles full-round  ·  bars 999px
+   Interactive surfaces highlight to a light blue wash on hover, which is the
+   one cool note in a warm palette and therefore unmistakably "this responds".
+
+   Type is Outfit throughout, set light. It carries the wordmark, so it carries
+   everything.
 --------------------------------------------------------------------------- */
 
 :root {
   /* surfaces and ink */
-  --paper: #f4f6f5;
+  --paper: #f7edf4;
   --surface: #ffffff;
-  --surface-sunk: #eef1f0;
-  --ink: #1f2429;
-  --ink-2: #576169;
-  --ink-3: #838d95;
-  --line: #e0e5e3;
-  --line-strong: #c9d1ce;
+  --surface-sunk: #f3e6ef;
+  --plate: #1c1730;
+  --ink: #2e2740;
+  --ink-2: #6b6280;
+  --ink-3: #9d95ad;
+  --line: #ebdcea;
+  --line-strong: #d6bde4;
 
-  /* brand accent, single accent for the whole page */
-  --accent: #b0563c;
-  --accent-hover: #98462f;
-  --accent-wash: #fbede8;
+  /* hover: the cool note */
+  --hover-wash: #e6edfb;
+  --hover-line: #98a4d8;
 
-  /* peril / measurement colours */
-  --roof: #e4a08c;
-  --roof-ink: #a9503a;
-  --roof-wash: #fbede8;
+  /* accent */
+  --accent: #ce90c8;
+  --accent-hover: #b96bb0;
+  --accent-ink: #8e4c88;
+  --accent-wash: #f8e9f6;
 
-  --canopy: #a8c49b;
-  --canopy-ink: #4f7742;
-  --canopy-wash: #edf3ea;
+  /* peril colours */
+  --roof: #fec0b3;
+  --roof-ink: #c05f47;
+  --roof-wash: #fff0eb;
 
-  --water: #9fbeda;
-  --water-ink: #3a6689;
-  --water-wash: #e9f0f6;
+  --canopy: #b3d6bd;
+  --canopy-ink: #4f8663;
+  --canopy-wash: #eaf5ee;
 
-  --wind: #e8cb8e;
-  --wind-ink: #8a6a21;
-  --wind-wash: #faf3e4;
+  --water: #98a4d8;
+  --water-ink: #5561a8;
+  --water-wash: #eaeefb;
+
+  --wind: #d6bde4;
+  --wind-ink: #8b62a3;
+  --wind-wash: #f6ecfa;
 
   /* verdict scale, higher score is safer */
-  --good: #4f7742;
-  --good-soft: #a8c49b;
-  --fair: #a97f28;
-  --fair-soft: #e8cb8e;
-  --poor: #b0563c;
-  --poor-soft: #e4a08c;
+  --good: #4f8663;
+  --good-soft: #b3d6bd;
+  --fair: #b8863f;
+  --fair-soft: #fdd9a8;
+  --poor: #c05f47;
+  --poor-soft: #fec0b3;
 
-  /* Type: Hanken Grotesk. A humanist grotesque with a tall x-height and
-     unambiguous figures, which matters when the audience skews older and the
-     page is mostly money. Deliberately not Inter / Geist / Instrument Sans:
-     those have become the house style of AI-generated interfaces, and looking
-     generated is the one thing this page cannot afford. */
-  --sans: 'Hanken Grotesk', ui-sans-serif, 'Segoe UI', system-ui, Helvetica,
-    Arial, sans-serif;
+  --display: 'Outfit', ui-sans-serif, 'Segoe UI', system-ui, Helvetica, Arial, sans-serif;
+  --sans: 'Outfit', ui-sans-serif, 'Segoe UI', system-ui, Helvetica, Arial, sans-serif;
+  --mono: 'Outfit', ui-sans-serif, 'Segoe UI', system-ui, Helvetica, Arial, sans-serif;
 
-  /* elevation, tinted to the page hue rather than pure black */
-  --shadow-sm: 0 1px 2px rgba(31, 36, 41, 0.04);
-  --shadow-md: 0 1px 2px rgba(31, 36, 41, 0.04), 0 8px 24px rgba(31, 36, 41, 0.06);
-  --shadow-lg: 0 2px 4px rgba(31, 36, 41, 0.04), 0 18px 44px rgba(31, 36, 41, 0.09);
+  --shadow-sm: 0 1px 2px rgba(46, 39, 64, 0.04);
+  --shadow-md: 0 2px 8px rgba(46, 39, 64, 0.05), 0 14px 34px rgba(46, 39, 64, 0.06);
+  --shadow-lg: 0 6px 16px rgba(46, 39, 64, 0.07), 0 28px 64px rgba(46, 39, 64, 0.1);
 
   color-scheme: light;
   color: var(--ink);
   background: var(--paper);
 
-  /* 17px base: this is read by homeowners, often older, often on a phone */
-  font: 17px/1.55 var(--sans);
+  font: 17px/1.6 var(--sans);
+  font-weight: 300;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+/* --- DARK ------------------------------------------------------------------
+   Deep plum rather than black, so the same pastels can sit on it. Every
+   accent is lifted: a pastel on a dark ground reads muddy at its light value.
+--------------------------------------------------------------------------- */
+:root[data-theme='dark'] {
+  --paper: #1b1528;
+  --surface: #251e35;
+  --surface-sunk: #150f20;
+  --plate: #0d0916;
+  --ink: #f3ecf6;
+  --ink-2: #b3a8c4;
+  --ink-3: #837799;
+  --line: #342a48;
+  --line-strong: #4a3d63;
+
+  --hover-wash: #26304f;
+  --hover-line: #98a4d8;
+
+  --accent: #e0a8db;
+  --accent-hover: #eec2ea;
+  --accent-ink: #f0cdec;
+  --accent-wash: #3320310;
+
+  --roof: #fec0b3;
+  --roof-ink: #ffd4c9;
+  --roof-wash: #33211c;
+
+  --canopy: #b3d6bd;
+  --canopy-ink: #cbe6d3;
+  --canopy-wash: #1c2c22;
+
+  --water: #98a4d8;
+  --water-ink: #bcc5ea;
+  --water-wash: #1f2540;
+
+  --wind: #d6bde4;
+  --wind-ink: #e7d5f0;
+  --wind-wash: #2c2138;
+
+  --good: #b3d6bd;
+  --good-soft: #4f8663;
+  --fair: #fdd9a8;
+  --fair-soft: #b8863f;
+  --poor: #fec0b3;
+  --poor-soft: #c05f47;
+
+  --shadow-sm: none;
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 28px 64px rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
+}
+
+:root,
+:root[data-theme='dark'] {
+  transition: background-color 320ms ease, color 320ms ease;
 }
 
 * {
@@ -97,9 +156,10 @@ h2,
 h3 {
   margin: 0;
   color: var(--ink);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  font-family: var(--display);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.18;
 }
 
 p {
@@ -146,3 +206,96 @@ input {
     scroll-behavior: auto !important;
   }
 }
+
+
+/* ---------------------------------------------------------------------------
+   Motion layer
+
+   Self-contained on purpose: reveals, the cursor and the hero stagger all live
+   here rather than threaded through App.css, so the design work above stays
+   editable without stepping on animation, and this whole block can be deleted
+   in one piece if it ever stops earning its place.
+
+   Everything is transform/opacity only, and the reduced-motion block at the
+   end returns the page to a plain static document.
+--------------------------------------------------------------------------- */
+
+/* Cursor: a soft disc that inverts whatever it crosses, so one element stays
+   legible over pale panels and dark aerial photography alike. */
+.cursor-disc {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #cfd6d3;
+  mix-blend-mode: difference;
+  pointer-events: none; /* must never intercept a click */
+  will-change: transform, width, height;
+  transition: opacity 200ms ease;
+}
+
+.cursor-disc.is-hidden {
+  opacity: 0;
+}
+
+/* Reveal on scroll. Sections lift in; the distance is small deliberately -
+   far travel reads as a slideshow rather than a page settling. */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Hero: words rise in sequence. The stagger is what makes the first frame feel
+   authored instead of merely loaded. */
+.stagger-word {
+  display: inline-block;
+  opacity: 0;
+  transform: translate3d(0, 0.5em, 0);
+  animation: word-rise 760ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes word-rise {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Primary actions lean toward the pointer (see useMagnetic) and need a spring
+   back when it leaves. */
+.magnetic {
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor-disc {
+    display: none;
+  }
+  .reveal,
+  .reveal.is-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .stagger-word {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+  .magnetic {
+    transition: none;
+  }
+}
+

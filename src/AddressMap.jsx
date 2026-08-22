@@ -15,14 +15,16 @@ const pinIcon = L.divIcon({
 // Known-good coordinates rather than address strings: picking one of these
 // skips the geocoder entirely, so a demo never waits on a third-party lookup.
 // Regional descriptions only, nothing that pre-empts what the pipeline returns.
+// One pin, not a menu. This is the address the pipeline has been tuned and
+// verified against, its OSM footprint is cached, and it returns instantly - so
+// it is the one to reach for when the clock is running.
+// These are the coordinates Nominatim actually returns for 9 Roblin Ave and
+// the ones every mask, threshold and cached result was verified against.
+// An earlier pass used 43.6905/-79.3222, which is roughly 600m away and a
+// different property - it would miss the warm cache and segment a house
+// nobody has checked.
 const DEMO_PINS = [
-  // First on purpose: this is the walkthrough property. Its analysis is
-  // pre-cached on the vision server, so it returns instantly instead of
-  // running a cold segmentation pass in front of an audience.
-  { label: '9 Roblin Ave, Toronto', note: 'Semi-detached, driveway and back patio', lat: 43.69592, lon: -79.32303 },
-  { label: 'Jasper, Alberta', note: 'Wildland urban interface', lat: 52.8734, lon: -118.0814 },
-  { label: 'Downtown Toronto', note: 'Dense block, heavily paved', lat: 43.6532, lon: -79.3832 },
-  { label: 'North York, Toronto', note: 'Detached, open lot', lat: 43.7, lon: -79.42 },
+  { label: '9 Roblin Avenue', note: 'East York, Toronto', lat: 43.69592, lon: -79.32303 },
 ]
 
 // Free OSM geocoder, no API key needed. Swap for Mapbox/Esri if rate limits or
