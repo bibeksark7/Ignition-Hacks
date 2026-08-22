@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "headers": [
+    {
+      "source": "/demo/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
+    },
+    {
+      "source": "/bg/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
+    }
+  ]
+}
