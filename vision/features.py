@@ -125,6 +125,31 @@ def lot_area_m2(osm_target_area_m2: float = None, roof_area_m2: float = None) ->
     return round(estimate, 1)
 
 
+_MIN_VEG_WIDTH_M = 2.5
+
+
+def drop_thin_vegetation(mask: np.ndarray, m_per_px: float) -> np.ndarray:
+    """Keep vegetation thick enough to be a tree crown, drop mown strips.
+
+    Lawn and tree crown are indistinguishable here by colour, brightness,
+    texture or local contrast - all four were measured against real
+    imagery and none separate them (the crown is actually *brighter* than
+    the lawn on the test property). Width does separate them once the lot
+    region is tight: the grass left inside it runs as narrow strips down
+    the side yards, while a crown is a chunky blob several metres across.
+    An opening keeps only what's wide enough to hold the disc.
+
+    This is a display/measurement refinement, not tree detection - a wide
+    lawn would still come through, and it should, since vegetation near a
+    structure is the ember-ignition risk the mitigation catalogue targets.
+    """
+    width_px = max(1, int(round(_MIN_VEG_WIDTH_M / m_per_px)))
+    if width_px % 2 == 0:
+        width_px += 1
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (width_px, width_px))
+    return cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_OPEN, kernel).astype(bool)
+
+
 def _dilate_by_radius_m(mask: np.ndarray, radius_m: float, m_per_px: float) -> np.ndarray:
     radius_px = max(1, int(round(radius_m / m_per_px)))
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * radius_px + 1, 2 * radius_px + 1))

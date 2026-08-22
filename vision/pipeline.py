@@ -203,13 +203,14 @@ def analyze_at_with_images(
     images = {
         "tile": image,
         "roof_mask": roof_mask,
-        # Canopy ships as graduated alpha keyed to distance from the house,
-        # not a flat mask: nearer canopy is the dangerous canopy, and a
-        # single flat tint gave a branch on the roof and a tree at the lot
-        # edge identical visual weight. Scoped to the roof plus the 5m ring,
-        # matching what canopy_within_5m_pct actually measures, so the
-        # overlay still shows only what the numbers count.
-        "canopy_mask": features.canopy_display_alpha(canopy_mask, roof_mask, m_per_px),
+        # Crisp vegetation on the lot, not a distance-graded halo. The
+        # graded version faded out to near-invisible at the edges and read
+        # as a smear around the house rather than a shape you could point
+        # at - in a demo the viewer has to be able to see what was
+        # detected. Severity still comes through in the numbers
+        # (canopy_overlap_pct vs canopy_within_5m_pct), which is where it
+        # belongs, rather than being encoded as opacity nobody can read.
+        "canopy_mask": features.drop_thin_vegetation(canopy_mask & lot_mask, m_per_px),
         "impervious_mask": impervious_mask & lot_mask,
     }
     return result, images
