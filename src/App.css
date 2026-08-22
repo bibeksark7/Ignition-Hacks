@@ -19,11 +19,48 @@
   margin-top: 6px;
 }
 
-/* address entry */
+/* address entry + map */
+.address-map-block {
+  margin-bottom: 24px;
+}
+
 .address-entry {
   display: flex;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
+}
+
+.map-hint {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: 8px 0;
+}
+
+.map-hint-error {
+  color: var(--brick);
+}
+
+.map-wrap {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.confirm-button {
+  margin-top: 12px;
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  background: var(--brick);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirm-button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .address-entry input {

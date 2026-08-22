@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { mockAnalysis } from './mockAnalysis'
+import AddressMap from './AddressMap'
 import './App.css'
 
 const PERIL_LABELS = {
@@ -18,30 +19,6 @@ function formatMoney(n) {
 // doesn't break depending on which shape wins.
 function getOverallRiskScore(data) {
   return typeof data.risk_score === 'object' ? data.risk_score.overall : data.risk_score
-}
-
-function AddressEntry({ onAnalyze, loading }) {
-  const [address, setAddress] = useState('')
-
-  return (
-    <form
-      className="address-entry"
-      onSubmit={(e) => {
-        e.preventDefault()
-        onAnalyze(address || mockAnalysis.address)
-      }}
-    >
-      <input
-        type="text"
-        placeholder="Enter a home address..."
-        value={address}
-        onChange={(e) => setAddress(e.target.value)}
-      />
-      <button type="submit" disabled={loading}>
-        {loading ? 'Analyzing...' : 'Check my risk'}
-      </button>
-    </form>
-  )
 }
 
 function LoadingSteps() {
@@ -179,11 +156,11 @@ function App() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  const handleAnalyze = (address) => {
+  const handleAnalyze = ({ address, lat, lon }) => {
     setLoading(true)
-    // Placeholder for the real GET /analyze?address=... call.
+    // Placeholder for the real GET /analyze?address=...&lat=...&lon=... call.
     setTimeout(() => {
-      setData({ ...mockAnalysis, address })
+      setData({ ...mockAnalysis, address, lat, lon })
       setLoading(false)
     }, 900)
   }
@@ -195,7 +172,7 @@ function App() {
         <p>See what your home's risk is actually costing you — and how to fix it.</p>
       </header>
 
-      <AddressEntry onAnalyze={handleAnalyze} loading={loading} />
+      <AddressMap onConfirm={handleAnalyze} loading={loading} />
 
       {loading && <LoadingSteps />}
 
