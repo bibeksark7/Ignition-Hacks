@@ -1,6 +1,7 @@
 import math
 
 import numpy as np
+import cv2
 
 from . import config
 
@@ -77,15 +78,21 @@ def roof_segmentation_is_plausible(mask: np.ndarray) -> bool:
 
 def roof_matches_footprint(roof_area_m2: float, osm_target_area_m2: float = None) -> bool:
     """Cross-check the segmented roof area against the real OSM building
-    footprint at this point, when one is available. A roof several times
+    footprint at this point, when one is available. A roof many times
     larger or smaller than the actual building here means the prompt point
     almost certainly landed on the wrong surface (lawn, road, neighbour's
     lot) rather than the roof - this is a much stronger signal than mask
-    shape alone."""
+    shape alone.
+
+    Bounds are loose (0.25x-4.5x) on purpose: OSM building outlines are
+    crowdsourced and often undersized relative to the true roof (eave
+    overhang, additions not re-surveyed), so a ~4x mismatch can be OSM's
+    own imprecision rather than a bad segmentation. This only needs to
+    catch gross errors (seen in practice: a lawn mis-segmented at ~32x)."""
     if osm_target_area_m2 is None or osm_target_area_m2 <= 0:
         return True
     ratio = roof_area_m2 / osm_target_area_m2
-    return 0.3 <= ratio <= 3.0
+    return 0.25 <= ratio <= 4.5
 
 
 def nearest_structure_m(osm_value: float = None) -> float:
@@ -99,3 +106,55 @@ def lot_area_m2(osm_target_area_m2: float = None) -> float:
     if osm_target_area_m2 is not None:
         return round(osm_target_area_m2 * _LOT_TO_FOOTPRINT_RATIO, 1)
     return config.DEFAULT_LOT_AREA_M2
+
+
+def _dilate_by_radius_m(mask: np.ndarray, radius_m: float, m_per_px: float) -> np.ndarray:
+    radius_px = max(1, int(round(radius_m / m_per_px)))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * radius_px + 1, 2 * radius_px + 1))
+    return cv2.dilate(mask.astype(np.uint8), kernel).astype(bool)
+
+
+def lot_region_mask(roof_mask: np.ndarray, lot_area_m2_val: float, m_per_px: float) -> np.ndarray:
+    """Approximate lot boundary as a buffer around the roof, sized so the
+    buffered region's area matches the estimated lot size. There's no real
+    parcel polygon available (OSM has no cadastral data), so this treats
+    the lot as roughly circular around the house - rough, but far closer
+    to 'this property' than counting the whole satellite tile, which
+    includes the street and neighbouring lots."""
+    lot_radius_m = math.sqrt(lot_area_m2_val / math.pi)
+    return _dilate_by_radius_m(roof_mask, lot_radius_m, m_per_px)
+
+
+def within_distance_ring(roof_mask: np.ndarray, distance_m: float, m_per_px: float) -> np.ndarray:
+    """Ring-shaped region within `distance_m` of the roof edge, excluding
+    the roof itself. Used for e.g. 'canopy within 5m of the structure'."""
+    buffered = _dilate_by_radius_m(roof_mask, distance_m, m_per_px)
+    return buffered & ~roof_mask
+
+
+def rasterize_local_polygons(polygons_m: list, image_shape: tuple, m_per_px: float) -> np.ndarray:
+    """Neighbouring buildings' OSM footprints (local metre coords, origin at
+    the query point) -> a pixel mask, so they can be excluded from the
+    impervious-surface mask. Without this, a neighbour's grey rooftop reads
+    as pavement under the HSV threshold, the same colour confusion problem
+    canopy-vs-lawn had."""
+    mask = np.zeros(image_shape[:2], dtype=np.uint8)
+    if not polygons_m:
+        return mask.astype(bool)
+
+    cy, cx = image_shape[0] / 2.0, image_shape[1] / 2.0
+    for poly in polygons_m:
+        pts = np.array(
+            [[cx + x / m_per_px, cy - y / m_per_px] for x, y in poly],
+            dtype=np.int32,
+        )
+        cv2.fillPoly(mask, [pts], 1)
+    return mask.astype(bool)
+
+
+def pct_within_region(feature_mask: np.ndarray, region_mask: np.ndarray) -> float:
+    region_px = region_mask.sum()
+    if region_px == 0:
+        return 0.0
+    overlap = np.logical_and(feature_mask, region_mask).sum()
+    return 100.0 * float(overlap) / float(region_px)

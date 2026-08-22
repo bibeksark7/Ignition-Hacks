@@ -26,13 +26,38 @@ def analyze(address: str, region_key: str = None) -> dict:
     )
 
 
+def analyze_with_images(address: str, region_key: str = None) -> tuple:
+    """Address -> (Contract A payload, images dict). See analyze_at_with_images."""
+    loc = geocode.geocode(address)
+    return analyze_at_with_images(
+        loc["lat"], loc["lon"],
+        region_key=region_key or loc["region_key"],
+        address_precision=loc["address_precision"],
+        is_precise_match=loc["is_precise_match"],
+    )
+
+
 def analyze_at(
     lat: float, lon: float, region_key: str = "default",
     address_precision: str = "point", is_precise_match: bool = True,
 ) -> dict:
-    """(lat, lon) -> full Contract A payload. Used directly after a
-    pin-confirm step, where the user-corrected coordinates are already
-    trusted and shouldn't be re-geocoded."""
+    """(lat, lon) -> Contract A payload only (no images). Used directly
+    after a pin-confirm step, where the user-corrected coordinates are
+    already trusted and shouldn't be re-geocoded."""
+    result, _images = analyze_at_with_images(
+        lat, lon, region_key=region_key,
+        address_precision=address_precision, is_precise_match=is_precise_match,
+    )
+    return result
+
+
+def analyze_at_with_images(
+    lat: float, lon: float, region_key: str = "default",
+    address_precision: str = "point", is_precise_match: bool = True,
+) -> tuple:
+    """Same as analyze_at, but also returns the raw tile image and masks
+    for the API layer to encode as PNGs - kept separate from Contract A
+    itself, which only Workstream 02 consumes and has no use for pixels."""
     tile = imagery.fetch_tile(lat, lon)
     osm = footprints.query_buildings(lat, lon)
 
@@ -41,17 +66,25 @@ def analyze_at(
 
     roof_mask = segmentation.segment_roof(image, center)
     canopy_mask = segmentation.segment_canopy(image)
-    impervious_mask = segmentation.segment_impervious(image, exclude_mask=roof_mask)
     roof_plausible = features.roof_segmentation_is_plausible(roof_mask)
 
     m_per_px = features.meters_per_pixel(lat, tile["zoom"], tile["retina"])
 
+    neighbor_buildings_mask = features.rasterize_local_polygons(
+        osm["other_building_polygons_m"], image.shape, m_per_px
+    )
+    impervious_mask = segmentation.segment_impervious(
+        image, exclude_mask=roof_mask | neighbor_buildings_mask
+    )
+
     roof_area_m2 = features.mask_area_m2(roof_mask, m_per_px)
     lot_area_m2 = features.lot_area_m2(osm["target_area_m2"])
     roof_matches_footprint = features.roof_matches_footprint(roof_area_m2, osm["target_area_m2"])
-    total_px = image.shape[0] * image.shape[1]
-    canopy_pct = 100.0 * float(canopy_mask.sum()) / total_px
-    impervious_pct = 100.0 * float(impervious_mask.sum()) / total_px
+
+    lot_mask = features.lot_region_mask(roof_mask, lot_area_m2, m_per_px)
+    five_m_ring = features.within_distance_ring(roof_mask, 5.0, m_per_px)
+    canopy_within_5m_pct = features.pct_within_region(canopy_mask, five_m_ring)
+    impervious_pct = features.pct_within_region(impervious_mask, lot_mask)
 
     feature_dict = {
         "lat": lat,
@@ -62,7 +95,7 @@ def analyze_at(
         "roof_material": features.guess_roof_material(image, roof_mask),
         "roof_damage_score": features.roof_damage_score(image, roof_mask),
         "canopy_overlap_pct": round(features.mask_overlap_pct(roof_mask, canopy_mask), 1),
-        "canopy_within_5m_pct": round(canopy_pct, 1),
+        "canopy_within_5m_pct": round(canopy_within_5m_pct, 1),
         "impervious_pct": round(impervious_pct, 1),
         "lot_area_m2": lot_area_m2,
         "nearest_structure_m": features.nearest_structure_m(osm["nearest_structure_m"]),
@@ -75,4 +108,11 @@ def analyze_at(
         feature_dict["roof_area_m2"], feature_dict["roof_damage_score"], region_key
     )
 
-    return {**feature_dict, **value}
+    result = {**feature_dict, **value}
+    images = {
+        "tile": image,
+        "roof_mask": roof_mask,
+        "canopy_mask": canopy_mask,
+        "impervious_mask": impervious_mask,
+    }
+    return result, images
