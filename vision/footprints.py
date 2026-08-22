@@ -1,10 +1,85 @@
+import json
 import math
+import os
 import time
 
 import requests
 
-_OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# Several independent Overpass instances. The main one goes down as a whole
+# (observed: connect timeouts on overpass-api.de and kumi, 502 from
+# private.coffee, all at once), so one dead endpoint shouldn't be fatal.
+_OVERPASS_MIRRORS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+)
+_OVERPASS_URL = _OVERPASS_MIRRORS[0]
 _SEARCH_RADIUS_M = 60
+
+_OSM_CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "osm_cache")
+
+
+def _cache_path(lat: float, lon: float) -> str:
+    # ~1m precision, which is far finer than the 60m search radius, so two
+    # lookups that round together would have returned the same buildings.
+    key = f"{lat:.5f}_{lon:.5f}".replace("-", "m").replace(".", "_")
+    return os.path.join(_OSM_CACHE_DIR, f"{key}.json")
+
+
+def _load_cached_elements(lat: float, lon: float):
+    path = _cache_path(lat, lon)
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def _save_cached_elements(lat: float, lon: float, elements: list) -> None:
+    try:
+        os.makedirs(_OSM_CACHE_DIR, exist_ok=True)
+        with open(_cache_path(lat, lon), "w", encoding="utf-8") as f:
+            json.dump(elements, f)
+    except OSError:
+        pass  # a cache write failing must never break the request
+
+
+def _fetch_elements(lat: float, lon: float, query: str):
+    """OSM building elements for this point, or None if every source failed.
+
+    Cache-first, on disk. Buildings don't move, so a previous successful
+    lookup stays valid - and this is the difference between a demo that
+    depends on a free shared public API being up at that exact moment and
+    one that doesn't. Only successful responses are cached; a failure must
+    never be recorded as "no buildings here", which is a legitimate result
+    that would disable the roof plausibility check.
+    """
+    cached = _load_cached_elements(lat, lon)
+    if cached is not None:
+        return cached
+
+    # A healthy Overpass answers this query in ~3s, so a short timeout costs
+    # nothing and caps the worst case. Trying three mirrors once each beats
+    # retrying one dead endpoint repeatedly: the earlier 3x20s-on-one-host
+    # arrangement took over two minutes to conclude the obvious, which on
+    # stage is indistinguishable from a hang.
+    for url in _OVERPASS_MIRRORS:
+        try:
+            resp = requests.post(
+                url,
+                data={"data": query},
+                headers={"User-Agent": "sightline-hackathon/0.1", "Accept": "*/*"},
+                timeout=8,
+            )
+            resp.raise_for_status()
+            elements = resp.json().get("elements", [])
+            _save_cached_elements(lat, lon, elements)
+            return elements
+        except (requests.RequestException, ValueError):
+            time.sleep(0.5)
+    return None
 
 
 def _to_local_xy(lat, lon, lat0, lon0):
@@ -96,24 +171,11 @@ def query_buildings(lat: float, lon: float) -> dict:
     # get much weaker point-only SAM prompting on one run and correct
     # box+point prompting on the next (confirmed directly: one address
     # returned a 3.6 sq m roof on one run, 428 sq m - the correct result -
-    # moments later with no code change). A couple of retries makes this
-    # actually reliable for the fixed demo address set.
-    elements = None
-    for attempt in range(3):
-        try:
-            resp = requests.post(
-                _OVERPASS_URL,
-                data={"data": query},
-                headers={"User-Agent": "sightline-hackathon/0.1", "Accept": "*/*"},
-                timeout=20,
-            )
-            resp.raise_for_status()
-            elements = resp.json().get("elements", [])
-            break
-        except (requests.RequestException, ValueError):
-            if attempt == 2:
-                return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_centroid_m": None, "target_bbox_m": None}
-            time.sleep(1.5)
+    # moments later with no code change). Cache + mirrors + retries make
+    # this actually reliable for the fixed demo address set.
+    elements = _fetch_elements(lat, lon, query)
+    if elements is None:
+        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_centroid_m": None, "target_bbox_m": None}
 
     polygons = []
     for el in elements:
