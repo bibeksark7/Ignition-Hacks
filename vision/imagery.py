@@ -1,5 +1,4 @@
 import io
-import datetime
 
 import requests
 from PIL import Image
@@ -35,5 +34,10 @@ def fetch_tile(lat: float, lon: float, zoom: int = None) -> dict:
         "lon": lon,
         "zoom": zoom,
         "retina": config.RETINA,
-        "imagery_date": datetime.date.today().isoformat(),
+        # Mapbox's Static Images API doesn't expose per-tile capture/vintage
+        # date anywhere (checked response headers - nothing there either).
+        # Showing today's date here would be actively misleading, since it
+        # looks precise but isn't real - the brief itself says to flag
+        # stale tiles, and we can't do that with a fabricated timestamp.
+        "imagery_date": None,
     }

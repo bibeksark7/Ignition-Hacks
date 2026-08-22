@@ -90,6 +90,7 @@ def analyze_at_with_images(
         "lat": lat,
         "lon": lon,
         "imagery_date": tile["imagery_date"],
+        "imagery_date_known": tile["imagery_date"] is not None,
         "zoom": tile["zoom"],
         "roof_area_m2": round(roof_area_m2, 1),
         "roof_material": features.guess_roof_material(image, roof_mask),

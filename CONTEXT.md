@@ -164,7 +164,8 @@ Owns: address → measurements → risk score → value estimate.
 ```json
 {
   "lat": 43.5183, "lon": -79.8774,
-  "imagery_date": "2024-05-11",
+  "imagery_date": null,
+  "imagery_date_known": false,
   "zoom": 19,
   "roof_area_m2": 187.4,
   "roof_material": "asphalt_shingle",
@@ -182,6 +183,15 @@ Owns: address → measurements → risk score → value estimate.
   "value_confidence": "low"
 }
 ```
+
+> **`imagery_date` is genuinely unknown, not a bug.** Mapbox's Static Images
+> API exposes no per-tile capture/vintage date anywhere (checked response
+> headers directly - nothing there). An earlier version of this pipeline
+> filled in today's date, which looked precise but was fabricated - fixed
+> to return `null` + `imagery_date_known: false` instead. Workstream 03
+> should render this as "capture date unknown" rather than hiding the
+> field, per the brief's own honesty section ("show capture date, flag
+> stale tiles" only works if the date shown is real).
 
 > **Resolved conflict (do not re-litigate without both owners in the room):**
 > Workstream 01 does **not** ship a `risk_score` field. Early in the build,
