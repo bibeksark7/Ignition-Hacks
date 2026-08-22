@@ -174,21 +174,38 @@ Owns: address → measurements → risk score → value estimate.
   "impervious_pct": 42.8,
   "lot_area_m2": 604.0,
   "nearest_structure_m": 8.4,
-  "confidence": 0.81,
-  "risk_score": 68,
-  "risk_score_breakdown": [
-    {"peril": "fire", "score": 61, "top_driver": "canopy_overlap_pct"},
-    {"peril": "water", "score": 74, "top_driver": "impervious_pct"}
-  ],
+  "address_precision": "house",
+  "roof_segmentation_plausible": true,
+  "confidence": 0.75,
   "estimated_value": 742000,
   "value_basis": "heuristic: footprint x neighborhood $/m2, condition-adjusted",
   "value_confidence": "low"
 }
 ```
 
+> **Resolved conflict (do not re-litigate without both owners in the room):**
+> Workstream 01 does **not** ship a `risk_score` field. Early in the build,
+> Workstream 01 computed its own rough risk score directly from raw features,
+> independently of Workstream 02's pricing multiplier. The two scores
+> diverged (68 vs. 59 for the same house) because they were two separately
+> invented weighted formulas with no shared source of truth. **Workstream 02
+> owns the one risk score that reaches the UI**, because it's derived from
+> the same multiplier that produces the premium — score and price can never
+> contradict each other. Workstream 01 keeps a rough score internally
+> (`vision/scoring.py`) purely as a dev-time sanity check; it is never
+> merged into this contract's output. Confirmed working end-to-end
+> 2026-08-21.
+
 Known gotchas: shadows read as dark roof (check a north-facing roof early);
 pools read as impervious under naive thresholding; SAM segments the wrong
-thing if the prompt point is off by a few metres.
+thing if the prompt point is off by a few metres or lands on a lawn instead
+of the roof (`roof_segmentation_plausible` and `confidence` exist to catch
+this — cross-checks the segmented roof area against the real OSM building
+footprint at that point, and flags low confidence when they disagree by
+more than 3x); `address_precision` flags when geocoding only matched a
+street, not a specific house (Nominatim's Canadian residential coverage is
+genuinely spotty) — Workstream 03 should surface a pin-confirm prompt when
+`confidence` is low.
 
 ### Workstream 02 · Risk & Pricing Engine
 
@@ -206,6 +223,16 @@ Owns: measurements → premium + ranked mitigation list. Consumes Contract A.
 **Contract B — output, consumed by Workstream 03:**
 ```json
 {
+  "risk_score": {
+    "overall": 59.1,
+    "grade": "D",
+    "perils": {"fire": 60.1, "water": 53.4, "wind_hail": 67.0}
+  },
+  "risk_score_if_all_actions": {
+    "overall": 74.8,
+    "grade": "C",
+    "perils": {"fire": 78.2, "water": 71.0, "wind_hail": 75.3}
+  },
   "annual_premium": 2140.00,
   "coverage_amount": 650000,
   "perils": [
@@ -224,6 +251,16 @@ Owns: measurements → premium + ranked mitigation list. Consumes Contract A.
   "disclaimer": "Demonstration model - not an actuarial quote."
 }
 ```
+
+**`risk_score` rules, agreed between Workstream 01 and 02 (2026-08-21):**
+- `risk_score` is the one canonical score — nested object, not a bare number.
+- Scale: 0–100 float, 1 decimal, **higher = safer** (opposite direction from
+  the internal risk multiplier — Workstream 03 should not invert it).
+- `grade`: letter A–F (A≥90, B≥80, C≥65, D≥50, F<50).
+- `perils` keys match the premium breakdown exactly: `fire`, `water`, `wind_hail`.
+- `risk_score_if_all_actions` is the same shape, projected if every
+  mitigation were applied — pairs with `premium_if_all_actions` for the
+  before/after slider.
 
 Include a `co_benefit` string on every mitigation — cheap to add, lets
 Workstream 04 show environmental-track judges that every financial

@@ -1,6 +1,12 @@
 import numpy as np
 
-from . import geocode, imagery, segmentation, features, footprints, scoring, valuation
+from . import geocode, imagery, segmentation, features, footprints, valuation
+
+# NOTE: vision/scoring.py computes a rough risk score independently and is
+# kept only as an internal sanity-check tool (see debug_visualize.py) - it
+# is NOT part of this contract. Workstream 02 owns the official risk_score,
+# since it's derived from the same multiplier that drives the price, which
+# guarantees the score and the premium can never contradict each other.
 
 
 def _confidence(is_precise_match: bool, roof_plausible: bool, roof_matches_footprint: bool) -> float:
@@ -65,9 +71,8 @@ def analyze_at(
         "confidence": _confidence(is_precise_match, roof_plausible, roof_matches_footprint),
     }
 
-    risk = scoring.compute_risk_score(feature_dict)
     value = valuation.estimate_value(
         feature_dict["roof_area_m2"], feature_dict["roof_damage_score"], region_key
     )
 
-    return {**feature_dict, **risk, **value}
+    return {**feature_dict, **value}
