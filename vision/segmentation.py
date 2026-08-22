@@ -176,6 +176,26 @@ def _drop_building_width_regions(mask: np.ndarray, m_per_px: float) -> np.ndarra
     return mask & ~building_width_regions
 
 
+_GREEN_EXCESS = 6.0  # raw 0-255 units of green above the red/blue average
+
+
+def _vegetation(image: np.ndarray) -> np.ndarray:
+    """Anything with more green in it than a neutral surface has.
+
+    HSV saturation alone cannot reject grass in shade: saturation is
+    chroma relative to brightness, so a dark lawn scores as low-saturation
+    "grey" and lands in the paving mask, which is why blue was showing up
+    on lawns. Green excess - how far the green channel sits above the mean
+    of red and blue - is a brightness-independent test, so shaded grass
+    reads as vegetation just like sunlit grass does. This is the standard
+    excess-green index used in aerial vegetation work, and it costs one
+    subtraction per pixel.
+    """
+    rgb = image.astype(np.int16)
+    excess_green = rgb[:, :, 1] - (rgb[:, :, 0] + rgb[:, :, 2]) / 2.0
+    return excess_green > _GREEN_EXCESS
+
+
 _SMOOTH_CLOSE_M = 0.8   # bridge shadow lines, tyre marks, sealant seams
 _SMOOTH_OPEN_M = 0.5    # drop isolated speckle
 _MIN_PAVING_PATCH_M2 = 2.0  # smaller than any real paved feature
@@ -205,7 +225,19 @@ def _smooth(mask: np.ndarray, m_per_px: float) -> np.ndarray:
     for i in range(1, count):
         if stats[i, cv2.CC_STAT_AREA] >= min_px:
             keep |= labels == i
-    return keep
+
+    # Redraw each surviving region as a simplified polygon. Paving is built
+    # by people in straight lines and the pixel-wise boundary is not - it
+    # wobbles around every shadow and tyre mark, which reads as noise next
+    # to SAM's clean roof outline. Simplifying to roughly half-metre
+    # tolerance keeps the real shape while giving it edges that look
+    # deliberate rather than sampled.
+    tolerance_px = max(1.0, 0.5 / m_per_px)
+    out = np.zeros_like(m)
+    contours = cv2.findContours(keep.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+    for c in contours:
+        cv2.fillPoly(out, [cv2.approxPolyDP(c, tolerance_px, True)], 1)
+    return out.astype(bool)
 
 
 def segment_impervious(
@@ -235,6 +267,7 @@ def segment_impervious(
     upper = np.array([180, 40, 210])
     mask = cv2.inRange(hsv, lower, upper).astype(bool)
     mask &= ~segment_pool(image)
+    mask &= ~_vegetation(image)
     if exclude_mask is not None:
         mask &= ~exclude_mask
     if m_per_px is not None:
