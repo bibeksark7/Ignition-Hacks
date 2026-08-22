@@ -186,7 +186,10 @@ def _smooth(mask: np.ndarray, m_per_px: float) -> np.ndarray:
 
 
 def segment_impervious(
-    image: np.ndarray, exclude_mask: np.ndarray = None, m_per_px: float = None
+    image: np.ndarray,
+    exclude_mask: np.ndarray = None,
+    m_per_px: float = None,
+    use_width_filter: bool = True,
 ) -> np.ndarray:
     """Grey asphalt/concrete via HSV thresholding (low saturation, mid-high
     value). Pools are excluded - see segment_pool - since a pool is not
@@ -212,6 +215,13 @@ def segment_impervious(
     if exclude_mask is not None:
         mask &= ~exclude_mask
     if m_per_px is not None:
-        mask = _drop_building_width_regions(mask, m_per_px)
+        # The width filter is a last resort for when we don't know where the
+        # buildings are: it throws away every wide grey region, which takes
+        # driveways and parking pads with it and leaves only a halo of thin
+        # fragments around the house. When OSM has given us surveyed
+        # outlines, the buildings are already excluded properly and this
+        # does far more harm than good.
+        if use_width_filter:
+            mask = _drop_building_width_regions(mask, m_per_px)
         mask = _smooth(mask, m_per_px)
     return mask

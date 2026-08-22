@@ -140,7 +140,13 @@ def _dilate_by_radius_m(mask: np.ndarray, radius_m: float, m_per_px: float) -> n
 # the region out into the public road, where the asphalt would read as
 # this property's impervious surface.
 _LOT_SIDE_MARGIN_M = 3.0
-_LOT_END_MARGIN_M = 12.0
+_LOT_END_MARGIN_M = 14.0
+# Always reach at least this far past each end of the house, even when the
+# lot-area estimate would suggest a shorter rectangle. A driveway runs from
+# the house to the street, and the masks shown in the UI are clipped to this
+# region - too short a rectangle crops the driveway off mid-way and leaves
+# only a halo of paving around the house, which is what it did before.
+_LOT_MIN_END_M = 10.0
 
 # Below this share of the estimated lot, the roof mask is too small to have
 # come from a real house (seen in practice: 3.6 m2, a rooftop vent, when the
@@ -185,7 +191,10 @@ def lot_region_mask(roof_mask: np.ndarray, lot_area_m2_val: float, m_per_px: flo
     lot_short_m = short_m + 2 * _LOT_SIDE_MARGIN_M
     # Depth makes up whatever area is left, but never less than the house
     # itself and never more than a plausible front+back yard beyond it.
-    lot_long_m = min(max(lot_area_m2_val / lot_short_m, long_m), long_m + 2 * _LOT_END_MARGIN_M)
+    lot_long_m = min(
+        max(lot_area_m2_val / lot_short_m, long_m + 2 * _LOT_MIN_END_M),
+        long_m + 2 * _LOT_END_MARGIN_M,
+    )
 
     # Map the short/long pair back onto the rect's own (width, height) axes.
     if w_px <= h_px:

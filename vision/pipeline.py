@@ -122,9 +122,20 @@ def analyze_at_with_images(
     canopy_mask = segmentation.segment_canopy(image)
     roof_plausible = features.roof_segmentation_is_plausible(roof_mask)
 
-    neighbor_buildings_mask = features.rasterize_local_polygons(
-        osm["other_building_polygons_m"], image.shape, m_per_px
-    )
+    # Every building OSM knows about here, the target included. Subtracting
+    # the target's own surveyed outline as well as SAM's roof mask matters:
+    # SAM regularly catches only part of a roof, and the part it misses is
+    # grey, so it reads as pavement. Dilated slightly to swallow the eave
+    # shadow that rings most roofs and would otherwise survive as a halo of
+    # thin "paving" fragments.
+    building_polygons = list(osm["other_building_polygons_m"])
+    if osm["target_polygon_m"] is not None:
+        building_polygons.append(osm["target_polygon_m"])
+    buildings_mask = features.rasterize_local_polygons(building_polygons, image.shape, m_per_px)
+    if buildings_mask.any():
+        buildings_mask = features._dilate_by_radius_m(buildings_mask, 1.0, m_per_px)
+    neighbor_buildings_mask = buildings_mask
+    have_surveyed_buildings = osm["target_polygon_m"] is not None
 
     # The lot region is derived from the roof alone, so it can be built
     # before segmenting paving - and it needs to be, because the paving
@@ -135,7 +146,10 @@ def analyze_at_with_images(
     lot_mask = features.lot_region_mask(roof_mask, lot_area_m2, m_per_px)
 
     impervious_mask = segmentation.segment_impervious(
-        image, exclude_mask=roof_mask | neighbor_buildings_mask, m_per_px=m_per_px
+        image,
+        exclude_mask=roof_mask | neighbor_buildings_mask,
+        m_per_px=m_per_px,
+        use_width_filter=not have_surveyed_buildings,
     )
     five_m_ring = features.within_distance_ring(roof_mask, 5.0, m_per_px)
     canopy_within_5m_pct = features.pct_within_region(canopy_mask, five_m_ring)

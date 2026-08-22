@@ -175,7 +175,7 @@ def query_buildings(lat: float, lon: float) -> dict:
     # this actually reliable for the fixed demo address set.
     elements = _fetch_elements(lat, lon, query)
     if elements is None:
-        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_centroid_m": None, "target_bbox_m": None}
+        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_polygon_m": None, "target_centroid_m": None, "target_bbox_m": None}
 
     polygons = []
     for el in elements:
@@ -186,7 +186,7 @@ def query_buildings(lat: float, lon: float) -> dict:
         polygons.append(coords)
 
     if not polygons:
-        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_centroid_m": None, "target_bbox_m": None}
+        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_polygon_m": None, "target_centroid_m": None, "target_bbox_m": None}
 
     target = None
     for poly in polygons:
@@ -208,6 +208,11 @@ def query_buildings(lat: float, lon: float) -> dict:
         "target_area_m2": round(_polygon_area(target), 1),
         "nearest_structure_m": round(nearest, 1) if nearest is not None else None,
         "other_building_polygons_m": others,
+        # The target's own outline, not just its bbox/centroid. SAM often
+        # catches only part of a roof, and the un-caught part is grey, so it
+        # reads as pavement. Subtracting the surveyed outline as well plugs
+        # that hole.
+        "target_polygon_m": target,
         "target_centroid_m": _polygon_centroid(target),
         "target_bbox_m": (min(xs), min(ys), max(xs), max(ys)),
     }
