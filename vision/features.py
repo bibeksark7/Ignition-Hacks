@@ -52,6 +52,17 @@ def roof_damage_score(image: np.ndarray, roof_mask: np.ndarray) -> float:
     return round(float(score), 3)
 
 
-def nearest_structure_m(*_args, **_kwargs) -> float:
-    """Placeholder until a building-footprint dataset is wired in."""
-    return config.DEFAULT_NEAREST_STRUCTURE_M
+_LOT_TO_FOOTPRINT_RATIO = 2.4  # typical suburban lot / building footprint ratio
+
+
+def nearest_structure_m(osm_value: float = None) -> float:
+    """Distance to nearest structure, from OSM footprints when available."""
+    return osm_value if osm_value is not None else config.DEFAULT_NEAREST_STRUCTURE_M
+
+
+def lot_area_m2(osm_target_area_m2: float = None) -> float:
+    """Lot size estimate. OSM has no cadastral parcel data, so this is a
+    footprint-based heuristic even when the building footprint itself is real."""
+    if osm_target_area_m2 is not None:
+        return round(osm_target_area_m2 * _LOT_TO_FOOTPRINT_RATIO, 1)
+    return config.DEFAULT_LOT_AREA_M2

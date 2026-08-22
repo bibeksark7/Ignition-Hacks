@@ -1,12 +1,14 @@
 import numpy as np
 
-from . import config, geocode, imagery, segmentation, features, scoring, valuation
+from . import geocode, imagery, segmentation, features, footprints, scoring, valuation
 
 
-def analyze(address: str, region_key: str = "default") -> dict:
+def analyze(address: str, region_key: str = None) -> dict:
     """Address -> full Contract A payload."""
     loc = geocode.geocode(address)
+    region_key = region_key or loc["region_key"]
     tile = imagery.fetch_tile(loc["lat"], loc["lon"])
+    osm = footprints.query_buildings(loc["lat"], loc["lon"])
 
     image = np.array(tile["image"])
     center = (image.shape[1] // 2, image.shape[0] // 2)
@@ -18,7 +20,7 @@ def analyze(address: str, region_key: str = "default") -> dict:
     m_per_px = features.meters_per_pixel(loc["lat"], tile["zoom"], tile["retina"])
 
     roof_area_m2 = features.mask_area_m2(roof_mask, m_per_px)
-    lot_area_m2 = config.DEFAULT_LOT_AREA_M2
+    lot_area_m2 = features.lot_area_m2(osm["target_area_m2"])
     total_px = image.shape[0] * image.shape[1]
     canopy_pct = 100.0 * float(canopy_mask.sum()) / total_px
     impervious_pct = 100.0 * float(impervious_mask.sum()) / total_px
@@ -35,8 +37,9 @@ def analyze(address: str, region_key: str = "default") -> dict:
         "canopy_within_5m_pct": round(canopy_pct, 1),
         "impervious_pct": round(impervious_pct, 1),
         "lot_area_m2": lot_area_m2,
-        "nearest_structure_m": features.nearest_structure_m(),
-        "confidence": 0.75,
+        "nearest_structure_m": features.nearest_structure_m(osm["nearest_structure_m"]),
+        "address_precision": loc["address_precision"],
+        "confidence": 0.75 if loc["is_precise_match"] else 0.35,
     }
 
     risk = scoring.compute_risk_score(feature_dict)
