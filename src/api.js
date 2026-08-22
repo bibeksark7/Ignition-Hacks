@@ -2,7 +2,10 @@ import { findDemoFixture, isDemoMode } from './demoData'
 
 // Override per-machine in .env.local (gitignored) as VITE_VISION_API_BASE / VITE_PRICING_API_BASE
 // so this doesn't need editing every time whoever's running a server changes.
-const VISION_API_BASE = import.meta.env.VITE_VISION_API_BASE || 'http://localhost:8000'
+// 8010 matches the vision server command in CONTEXT.md §14. This defaulted to
+// 8000, so anyone without a .env.local (i.e. a fresh clone) silently failed to
+// reach vision at all.
+const VISION_API_BASE = import.meta.env.VITE_VISION_API_BASE || 'http://localhost:8010'
 const PRICING_API_BASE = import.meta.env.VITE_PRICING_API_BASE || 'http://localhost:8001'
 
 // Workstream 01's endpoint: address/lat+lon -> Contract A features + imagery/mask PNGs.

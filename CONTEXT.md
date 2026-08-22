@@ -300,18 +300,63 @@ Owns: the entire visible product. Consumes Contract A + B (merged into one
 API response). Consumer-lens change: **risk score + estimated value are the
 headline**, above the fold; premium/mitigations follow as supporting detail.
 
-- Address entry + pin-confirm on a real map
-- Imagery panel with toggleable coloured mask overlays (brick-red roof,
-  green canopy, blue impervious) + visible capture date — build this first,
-  it's the single highest-value feature
-- Risk score display (prominent, e.g. gauge/number) + estimated value,
-  side by side
-- Per-peril premium breakdown (bar/stacked chart) as supporting context
-- Plain-language attribution ("what pushed this up or down")
-- Mitigation cards sorted by payback: cost, annual saving, payback period,
-  environmental co-benefit
-- Before/after slider: score & premium if every mitigation were done
+> **Keep this section current.** Whenever the frontend changes, update the
+> section below in the same commit. Workstreams 01 and 02 read this to know
+> what the interface does with their fields, and a stale description here is
+> how a renamed field quietly stops being displayed. Pull `CONTEXT.md` along
+> with the code.
+
+**Shipped as of `c539c45`.** Every item in the original checklist is built:
+
+- Address entry, plus three sample locations that seed the pin from fixed
+  coordinates so a demo never waits on the geocoder
+- Pin-confirm step on a real map (CARTO Positron tiles, not raw OSM)
+- Imagery panel with toggleable mask overlays and a visible capture date
+- Risk score gauge (0-100 arc, letter grade) beside the value estimate
+- The four measurements shown as figures: roof footprint, tree cover over
+  roof, lot paved over, nearest building. These were being computed and
+  then thrown away, which hid the hardest part of the project
+- Per-peril breakdown as one composition bar plus rows, with the plain
+  language driver under each peril
+- Mitigation cards ranked by payback, with the before/after toggle
 - Loading state that names each pipeline step as it runs
+- Footnotes carrying the honesty constraints from §8, including the
+  surveillance answer, so it is on the page rather than improvised in Q&A
+
+**Design system (documented so it does not drift).** Tokens live in
+`src/index.css`, layout in `src/App.css`:
+
+- **Theme is locked to light.** No dark mode. Pastel needs light, and a
+  recorded demo must not render differently depending on the viewer's OS.
+- **Palette is Goad's colour code, desaturated:** terracotta = roof/fire,
+  sage = canopy, powder blue = water/paving, wheat = wind and hail. This is
+  the pitch hook made literal, so keep the semantics if you touch the colours.
+- One accent (`--accent`, terracotta) for every CTA and focus ring.
+- One radius scale: panels/cards 16px, inputs/buttons 10px, chips/toggles
+  full-round.
+- 17px base type, 44px minimum tap targets, labels above inputs. The
+  audience skews older; this is not negotiable styling preference.
+- Typeface is Hanken Grotesk with a system fallback stack.
+
+**Files:** `App.jsx` (all sections), `AddressMap.jsx` (entry, map,
+pin-confirm), `RiskGauge.jsx` (arc), `grade.js` (grade to tone/word),
+`api.js` (both service calls), `demoData.js` + `demoData.generated.js`
+(offline mode), `App.css` / `index.css` (styles).
+
+**Offline demo mode.** Append `?demo=1` to the URL and the app serves cached
+pricing output for the three sample locations instead of calling either
+server, with a banner across the top so cached figures can never be mistaken
+for a live run. This is fallback ladder rung 4 (§11) made real. The fixtures
+are generated, never hand-written:
+
+```bash
+npm run build:demo   # rebuilds src/demoData.generated.js from
+                     # pricing/demo_cache/*.json
+```
+
+**Known gap:** the mask overlay has been verified against a stubbed image
+only. It needs one real run against the vision server to confirm the roof,
+canopy and paving layers land in register on the photo.
 
 **Actual architecture (not the single-merged-endpoint plan originally
 sketched here) — two separate servers, frontend calls both and merges
@@ -327,6 +372,8 @@ POST http://<pricing-host>:8001/price   (body: the Contract A response above)
 `src/api.js`'s `fetchAnalysis()` calls vision then pricing and spreads
 both into one object. See §14 below for how to actually get both servers
 running locally — this tripped up cross-machine testing more than once.
+Its defaults are `localhost:8010` (vision) and `localhost:8001` (pricing),
+matching §14; override per-machine in `.env.local`.
 
 Build against a hardcoded mock of this from hour two — never sit idle
 waiting for the backend to exist.
@@ -376,6 +423,11 @@ Owns: the story, the demo, the submission, and integration testing.
 
 Rung 4 still demos well if Workstream 03 did their job — say it plainly if
 asked how the numbers were produced.
+
+**Rung 4 is built.** `http://localhost:5173/?demo=1` runs the whole flow with
+no servers at all, serving cached pricing-engine output for the three sample
+locations. It paints a banner saying so, which is the "say it plainly" part
+handled in the interface rather than left to whoever is holding the mic.
 
 ## 12. Stack & sources
 
