@@ -730,8 +730,17 @@
   background: var(--roof);
 }
 
+/* Canopy is the one layer whose tint matches what sits under it, so multiply
+   had almost nothing to work with: sage over foliage that is already green
+   changed the picture by ~12/255 per pixel, against ~41 for the same layer
+   painted normally. Roof (terracotta on grey) and paving (blue on grey) read
+   fine on multiply and keep it. Measured on 9 Roblin, where the canopy layer
+   covers 0.72% of the tile and was effectively invisible.
+   Palette is untouched - this is blend and opacity only. */
 .mask-canopy {
   background: var(--canopy);
+  mix-blend-mode: normal;
+  opacity: 0.85;
 }
 
 .mask-water {

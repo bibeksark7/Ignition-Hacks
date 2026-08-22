@@ -331,6 +331,15 @@ headline**, above the fold; premium/mitigations follow as supporting detail.
 - **Palette is Goad's colour code, desaturated:** terracotta = roof/fire,
   sage = canopy, powder blue = water/paving, wheat = wind and hail. This is
   the pitch hook made literal, so keep the semantics if you touch the colours.
+- **Mask layers blend `multiply`, except canopy, which blends `normal` at
+  0.85 opacity.** Multiply darkens what sits underneath, so it needs the
+  tint and the backdrop to differ. Roof (terracotta on grey) and paving
+  (blue on grey) are fine. Canopy is sage over foliage that is already
+  green, so multiply moved the picture by only ~12/255 per pixel, against
+  ~41 for the same layer painted normally - one third of the computer
+  vision was effectively invisible on the photo. Measured on 9 Roblin,
+  where the canopy layer covers 0.72% of the tile. Palette untouched; this
+  is blend mode and opacity only.
 - One accent (`--accent`, terracotta) for every CTA and focus ring.
 - One radius scale: panels/cards 16px, inputs/buttons 10px, chips/toggles
   full-round.
@@ -354,9 +363,18 @@ npm run build:demo   # rebuilds src/demoData.generated.js from
                      # pricing/demo_cache/*.json
 ```
 
-**Known gap:** the mask overlay has been verified against a stubbed image
-only. It needs one real run against the vision server to confirm the roof,
-canopy and paving layers land in register on the photo.
+**Overlay verified against live runs.** All three layers land in register on
+the photo, confirmed end-to-end against the running vision + pricing servers
+on the Scarborough/East York demo addresses (85 Pitt, 9 Roblin, 68A/68B and
+84 Bexhill). Two things that pass numerically but read wrong on screen, and
+are worth re-checking after any change to segmentation or the overlay:
+
+- A layer can be correct and still invisible. Canopy measured fine the whole
+  time it was unreadable on the photo - see the blend-mode note above.
+- Canopy display is scoped to the roof plus the 5m ring, matching what
+  `canopy_within_5m_pct` measures, so trees further out are deliberately not
+  painted. On a lot whose trees sit 20m+ away this looks like a miss and is
+  not one; confirm the distance before treating it as a bug.
 
 **Actual architecture (not the single-merged-endpoint plan originally
 sketched here) — two separate servers, frontend calls both and merges
