@@ -10,7 +10,7 @@
 }
 
 .app-header h1 {
-  font-size: 40px;
+  font-size: clamp(28px, 8vw, 40px);
   letter-spacing: -0.02em;
 }
 
@@ -167,6 +167,7 @@
   -webkit-mask-position: center;
   -webkit-mask-repeat: no-repeat;
   opacity: 0.5;
+  filter: blur(1.5px);
   pointer-events: none;
 }
 
@@ -225,12 +226,12 @@
 .callout-warning {
   margin: 12px 0 0;
   padding: 12px 14px;
-  border: 1px solid var(--frame, #a97a1e);
-  border-left: 3px solid var(--frame, #a97a1e);
+  border: 1px solid var(--frame);
+  border-left: 3px solid var(--frame);
   border-radius: 6px;
   font-size: 13px;
   color: var(--ink-2);
-  background: color-mix(in srgb, var(--frame, #a97a1e) 10%, transparent);
+  background: color-mix(in srgb, var(--frame) 10%, transparent);
 }
 
 /* risk + value headline */
@@ -271,6 +272,49 @@
 .headline-sub {
   font-size: 13px;
   color: var(--ink-2);
+  min-height: 1.4em;
+}
+
+.risk-card-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* gauge */
+.gauge {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gauge-inner {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+}
+
+.gauge-score {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.gauge-grade {
+  font-size: 10px;
+  color: var(--ink-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 /* peril breakdown */
@@ -397,7 +441,44 @@
 }
 
 @media (max-width: 520px) {
+  .app {
+    padding: 20px 14px 60px;
+  }
+
   .risk-and-value {
     grid-template-columns: 1fr;
+  }
+
+  .headline-figure {
+    font-size: 26px;
+  }
+
+  .peril-row {
+    grid-template-columns: 66px 1fr 60px;
+    gap: 6px;
+    font-size: 13px;
+  }
+
+  .peril-driver {
+    margin-left: 72px;
+  }
+
+  .mitigation-stats {
+    flex-wrap: wrap;
+    gap: 14px 20px;
+  }
+
+  .before-after {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .before-after-figures {
+    text-align: left;
+  }
+
+  .address-entry {
+    flex-direction: column;
   }
 }

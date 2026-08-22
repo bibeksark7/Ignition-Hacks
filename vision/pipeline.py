@@ -72,6 +72,7 @@ def analyze_at_with_images(
     # lawn), while an OSM building footprint is real surveyed geometry.
     # Falls back to the tile centre when OSM has no coverage here.
     prompt_point = center
+    prompt_bbox = None
     if osm["target_centroid_m"] is not None:
         cx_m, cy_m = osm["target_centroid_m"]
         px = int(round(center[0] + cx_m / m_per_px))
@@ -79,7 +80,25 @@ def analyze_at_with_images(
         if 0 <= px < image.shape[1] and 0 <= py < image.shape[0]:
             prompt_point = (px, py)
 
-    roof_mask = segmentation.segment_roof(image, prompt_point)
+    if osm["target_bbox_m"] is not None:
+        # SAM treats the box as a fairly hard spatial constraint (confirmed
+        # in testing - it clipped a roof exactly at the box edge), so the
+        # pad needs to be generous enough to survive an outdated/undersized
+        # OSM footprint (seen directly: one property's real roof was ~3.7x
+        # OSM's mapped area, presumably a since-built addition), not just
+        # normal eave overhang.
+        pad_m = 8.0
+        min_x, min_y, max_x, max_y = osm["target_bbox_m"]
+        x1 = int(round(center[0] + (min_x - pad_m) / m_per_px))
+        y1 = int(round(center[1] - (max_y + pad_m) / m_per_px))
+        x2 = int(round(center[0] + (max_x + pad_m) / m_per_px))
+        y2 = int(round(center[1] - (min_y - pad_m) / m_per_px))
+        x1, x2 = max(0, min(x1, x2)), min(image.shape[1], max(x1, x2))
+        y1, y2 = max(0, min(y1, y2)), min(image.shape[0], max(y1, y2))
+        if x2 > x1 and y2 > y1:
+            prompt_bbox = (x1, y1, x2, y2)
+
+    roof_mask = segmentation.segment_roof(image, prompt_point, prompt_bbox)
     canopy_mask = segmentation.segment_canopy(image)
     roof_plausible = features.roof_segmentation_is_plausible(roof_mask)
 

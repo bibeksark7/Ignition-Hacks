@@ -13,15 +13,25 @@ def _get_sam():
     return _sam_model
 
 
-def segment_roof(image: np.ndarray, point_xy: tuple) -> np.ndarray:
-    """Zero-shot roof mask from a single point prompt at the parcel centre.
+def segment_roof(image: np.ndarray, point_xy: tuple, bbox_xyxy: tuple = None) -> np.ndarray:
+    """Roof mask from SAM. A single point prompt is ambiguous for a complex
+    multi-plane roof - SAM will happily segment just the one plane or
+    shadow patch touching that pixel instead of the whole structure. When
+    a real OSM building footprint is available, its bounding box (padded
+    for eave overhang) is passed alongside the point - a box prompt biases
+    SAM strongly toward "the whole object filling this region" rather than
+    a sub-part, which the point prompt alone repeatedly failed at in
+    testing. Falls back to point-only when no footprint data exists.
 
-    SAM's raw output often has small holes around roof vents, ridge lines,
-    and shadowed patches - real gaps in an otherwise coherent roof, not
-    signal. A morphological close (dilate then erode) bridges those without
-    growing the mask's actual outer boundary."""
+    SAM's raw output also often has small holes around roof vents, ridge
+    lines, and shadowed patches - real gaps in an otherwise coherent roof,
+    not signal. A morphological close (dilate then erode) bridges those
+    without growing the mask's actual outer boundary."""
     model = _get_sam()
-    results = model(image, points=[list(point_xy)], labels=[1], verbose=False)
+    kwargs = {"points": [list(point_xy)], "labels": [1], "verbose": False}
+    if bbox_xyxy is not None:
+        kwargs["bboxes"] = [list(bbox_xyxy)]
+    results = model(image, **kwargs)
     mask = results[0].masks.data[0].cpu().numpy().astype(np.uint8)
 
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))

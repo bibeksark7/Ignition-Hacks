@@ -7,6 +7,7 @@
   --brick: #b0472f;
   --stone: #3c6a8e;
   --canopy: #5b7a46;
+  --frame: #a97a1e;
 
   --sans: 'Segoe UI', system-ui, Roboto, sans-serif;
 
@@ -23,6 +24,10 @@
     --ink: #eceeec;
     --ink-2: #a6adb5;
     --border: #2e343b;
+    --brick: #de7a5f;
+    --stone: #74a6cb;
+    --canopy: #93b473;
+    --frame: #d3a64e;
   }
 }
 

@@ -99,7 +99,7 @@ def query_buildings(lat: float, lon: float) -> dict:
         resp.raise_for_status()
         elements = resp.json().get("elements", [])
     except (requests.RequestException, ValueError):
-        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_centroid_m": None}
+        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_centroid_m": None, "target_bbox_m": None}
 
     polygons = []
     for el in elements:
@@ -110,7 +110,7 @@ def query_buildings(lat: float, lon: float) -> dict:
         polygons.append(coords)
 
     if not polygons:
-        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_centroid_m": None}
+        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_centroid_m": None, "target_bbox_m": None}
 
     target = None
     for poly in polygons:
@@ -125,9 +125,13 @@ def query_buildings(lat: float, lon: float) -> dict:
         min(_polygon_min_dist(target, o) for o in others) if others else None
     )
 
+    xs = [p[0] for p in target]
+    ys = [p[1] for p in target]
+
     return {
         "target_area_m2": round(_polygon_area(target), 1),
         "nearest_structure_m": round(nearest, 1) if nearest is not None else None,
         "other_building_polygons_m": others,
         "target_centroid_m": _polygon_centroid(target),
+        "target_bbox_m": (min(xs), min(ys), max(xs), max(ys)),
     }
