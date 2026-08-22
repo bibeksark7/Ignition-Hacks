@@ -4,7 +4,7 @@ import pytest
 
 from pricing import config
 from pricing.engine import analyze
-from pricing.hazards import HazardFactors, lookup_hazards
+from pricing.hazards import _DEFAULT, HazardFactors, lookup_hazards
 from pricing.risk_model import compute_multipliers, score_from_multiplier
 
 SAMPLE_CONTRACT_A = {
@@ -47,6 +47,25 @@ def test_hazards_hotspots_calgary_is_hail_dominant():
     factors = lookup_hazards(51.0447, -114.0719)
     assert factors.wind_hail > 0.7
     assert factors.wind_hail > factors.wildfire
+
+
+def test_hazards_hotspots_winnipeg_is_flood_dominant():
+    factors = lookup_hazards(49.8951, -97.1384)
+    assert factors.flood > 0.5
+    assert factors.flood > factors.wildfire
+
+
+@pytest.mark.parametrize(
+    "name,lat,lon",
+    [
+        ("Saskatoon, SK", 52.1332, -106.6700),
+        ("St. John's, NL", 47.5615, -52.7126),
+        ("Fredericton, NB", 45.9636, -66.6431),
+    ],
+)
+def test_hazards_prairies_and_atlantic_no_longer_hit_the_generic_default(name, lat, lon):
+    factors = lookup_hazards(lat, lon)
+    assert factors != _DEFAULT, f"{name} should resolve to a real regional profile, not the generic fallback"
 
 
 def test_hazards_demo_contrast_jasper_vs_gta_diverges_sharply():

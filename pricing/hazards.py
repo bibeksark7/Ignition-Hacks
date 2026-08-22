@@ -39,6 +39,7 @@ _HOTSPOTS: List[Tuple[str, float, float, float, HazardFactors]] = [
     ("Greater Toronto Area — flood-prone", 43.6532, -79.3832, 60, HazardFactors(flood=0.65, wildfire=0.10, wind_hail=0.35)),
     ("Metro Vancouver — coastal flood", 49.2827, -123.1207, 50, HazardFactors(flood=0.55, wildfire=0.20, wind_hail=0.25)),
     ("Maritimes — hurricane exposure", 44.65, -63.57, 200, HazardFactors(flood=0.40, wildfire=0.15, wind_hail=0.60)),
+    ("Winnipeg / Red River Valley, MB — flood-prone", 49.895, -97.138, 80, HazardFactors(flood=0.60, wildfire=0.15, wind_hail=0.45)),
 ]
 
 # Coarse provincial fallback for anywhere not near a named hotspot.
@@ -48,6 +49,8 @@ _REGIONS = [
     (48.0, 60.0, -120.0, -110.0, HazardFactors(flood=0.30, wildfire=0.70, wind_hail=0.30)),  # Alberta
     (41.0, 47.0, -84.0, -74.0, HazardFactors(flood=0.55, wildfire=0.15, wind_hail=0.40)),    # Southern Ontario / GTA
     (44.5, 47.5, -80.0, -74.0, HazardFactors(flood=0.30, wildfire=0.20, wind_hail=0.35)),    # Southern Quebec
+    (49.0, 60.0, -110.0, -95.0, HazardFactors(flood=0.35, wildfire=0.35, wind_hail=0.45)),   # Saskatchewan / Manitoba - tornado/hail belt extends here, boreal wildfire fringe
+    (43.0, 52.0, -68.0, -52.0, HazardFactors(flood=0.35, wildfire=0.15, wind_hail=0.55)),    # Atlantic Canada (NB/NS/PEI/NL) - hurricane/nor'easter exposure
 ]
 
 _DEFAULT = HazardFactors(flood=0.30, wildfire=0.25, wind_hail=0.30)
