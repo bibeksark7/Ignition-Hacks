@@ -186,23 +186,23 @@ def _smooth(mask: np.ndarray, m_per_px: float) -> np.ndarray:
 
 
 def segment_impervious(
-    image: np.ndarray,
-    exclude_mask: np.ndarray = None,
-    m_per_px: float = None,
-    protect_mask: np.ndarray = None,
+    image: np.ndarray, exclude_mask: np.ndarray = None, m_per_px: float = None
 ) -> np.ndarray:
     """Grey asphalt/concrete via HSV thresholding (low saturation, mid-high
     value). Pools are excluded - see segment_pool - since a pool is not
     pavement, even though naive thresholding often confuses the two.
 
-    `protect_mask` is this property's own lot. The building-width filter
-    exists to strip neighbours' roofs, which colour alone can't tell from
-    asphalt - but it removes any grey region wide in both directions, and
-    a parking pad or patio is exactly that, so on-property paving was
-    being deleted along with the neighbours. Inside the lot the roof is
-    already excluded and the lot region no longer reaches next door, so
-    wide grey there is paving and is kept; outside it, the width test
-    still applies.
+    Note on the width filter: it was tried as "only apply outside our own
+    lot", on the reasoning that the roof is already excluded and the lot
+    region no longer reaches next door, so wide grey inside the lot must
+    be a patio or parking pad. That is wrong in practice, because the roof
+    mask is often incomplete - when SAM catches only part of a roof, or
+    the footprint lookup fails and it falls back to a box prompt, the rest
+    of the roof is grey, inside the lot, and no longer removed. It painted
+    the un-segmented half of a townhouse roof solid blue (440 Pharmacy,
+    70.4% impervious) and roof-edge shadow on 84 Bexhill. The width test
+    is the only backstop against an incomplete roof mask, so it stays
+    unconditional.
     """
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
     lower = np.array([0, 0, 60])
@@ -212,11 +212,6 @@ def segment_impervious(
     if exclude_mask is not None:
         mask &= ~exclude_mask
     if m_per_px is not None:
-        narrowed = _drop_building_width_regions(mask, m_per_px)
-        if protect_mask is not None:
-            # Keep whatever the width test removed from inside our own lot.
-            mask = narrowed | (mask & protect_mask)
-        else:
-            mask = narrowed
+        mask = _drop_building_width_regions(mask, m_per_px)
         mask = _smooth(mask, m_per_px)
     return mask

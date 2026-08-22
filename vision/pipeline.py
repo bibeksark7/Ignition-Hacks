@@ -135,10 +135,7 @@ def analyze_at_with_images(
     lot_mask = features.lot_region_mask(roof_mask, lot_area_m2, m_per_px)
 
     impervious_mask = segmentation.segment_impervious(
-        image,
-        exclude_mask=roof_mask | neighbor_buildings_mask,
-        m_per_px=m_per_px,
-        protect_mask=lot_mask & ~neighbor_buildings_mask,
+        image, exclude_mask=roof_mask | neighbor_buildings_mask, m_per_px=m_per_px
     )
     five_m_ring = features.within_distance_ring(roof_mask, 5.0, m_per_px)
     canopy_within_5m_pct = features.pct_within_region(canopy_mask, five_m_ring)
