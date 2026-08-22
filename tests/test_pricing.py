@@ -148,7 +148,33 @@ def test_no_estimated_value_falls_back_to_default_coverage():
     no_value = dict(SAMPLE_CONTRACT_A)
     del no_value["estimated_value"]
     result = analyze(no_value)
-    from pricing import config
 
     assert result["coverage_amount"] == config.DEFAULT_COVERAGE_AMOUNT
     assert "home_value_estimate" not in result
+
+
+def test_low_confidence_flag_set_when_segmentation_unreliable():
+    bad_segmentation = dict(SAMPLE_CONTRACT_A, confidence=0.15)  # Workstream 01's "implausible mask" value
+    result = analyze(bad_segmentation)
+
+    assert result["measurement_confidence"] == 0.15
+    assert result["low_confidence_warning"] is True
+    assert "low_confidence_reason" in result
+
+
+def test_low_confidence_flag_not_set_for_clean_match():
+    clean_match = dict(SAMPLE_CONTRACT_A, confidence=0.75)  # Workstream 01's "precise match" value
+    result = analyze(clean_match)
+
+    assert result["measurement_confidence"] == 0.75
+    assert result["low_confidence_warning"] is False
+    assert "low_confidence_reason" not in result
+
+
+def test_low_confidence_flag_defaults_safely_when_confidence_absent():
+    no_confidence = dict(SAMPLE_CONTRACT_A)
+    del no_confidence["confidence"]
+    result = analyze(no_confidence)
+
+    assert result["measurement_confidence"] is None
+    assert result["low_confidence_warning"] is False

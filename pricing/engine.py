@@ -46,4 +46,15 @@ def analyze(contract_a: Dict[str, Any], coverage_amount: Optional[float] = None)
         result["home_value_confidence"] = contract_a.get("value_confidence")
         result["premium_pct_of_value"] = round(premium / home_value, 4) if home_value else None
 
+    measurement_confidence = contract_a.get("confidence")
+    result["measurement_confidence"] = measurement_confidence
+    low_confidence = measurement_confidence is not None and measurement_confidence < config.LOW_CONFIDENCE_THRESHOLD
+    result["low_confidence_warning"] = low_confidence
+    if low_confidence:
+        result["low_confidence_reason"] = (
+            "Vision measurements for this address have low confidence (segmentation may have "
+            "missed the roof or landed on the wrong structure). Treat this as a rough estimate, "
+            "not a reliable quote."
+        )
+
     return result

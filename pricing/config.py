@@ -64,6 +64,13 @@ ROOF_MATERIAL_WIND_RISK = {
 
 DEFAULT_ROOF_MATERIAL_RISK = 0.4  # used if roof_material isn't in the tables above
 
+# Below this, Workstream 01's confidence score means the segmentation likely
+# missed the roof or landed on the wrong structure (their _confidence()
+# returns 0.15 for implausible/mismatched masks, 0.35 for an imprecise
+# geocode match, 0.75 for a clean match) - surface a warning rather than
+# presenting the number as reliable.
+LOW_CONFIDENCE_THRESHOLD = 0.5
+
 SPACING_RISK_THRESHOLD_M = 12.0  # beyond this distance, spacing risk is treated as ~0
 
 # --- Risk score (0-100, higher = safer) --------------------------------------
