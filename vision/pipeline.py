@@ -125,15 +125,21 @@ def analyze_at_with_images(
     neighbor_buildings_mask = features.rasterize_local_polygons(
         osm["other_building_polygons_m"], image.shape, m_per_px
     )
-    impervious_mask = segmentation.segment_impervious(
-        image, exclude_mask=roof_mask | neighbor_buildings_mask, m_per_px=m_per_px
-    )
 
+    # The lot region is derived from the roof alone, so it can be built
+    # before segmenting paving - and it needs to be, because the paving
+    # step uses it to tell "our wide patio" from "the neighbour's roof".
     roof_area_m2 = features.mask_area_m2(roof_mask, m_per_px)
     lot_area_m2 = features.lot_area_m2(osm["target_area_m2"], roof_area_m2)
     roof_matches_footprint = features.roof_matches_footprint(roof_area_m2, osm["target_area_m2"])
-
     lot_mask = features.lot_region_mask(roof_mask, lot_area_m2, m_per_px)
+
+    impervious_mask = segmentation.segment_impervious(
+        image,
+        exclude_mask=roof_mask | neighbor_buildings_mask,
+        m_per_px=m_per_px,
+        protect_mask=lot_mask & ~neighbor_buildings_mask,
+    )
     five_m_ring = features.within_distance_ring(roof_mask, 5.0, m_per_px)
     canopy_within_5m_pct = features.pct_within_region(canopy_mask, five_m_ring)
     impervious_pct = features.pct_within_region(impervious_mask, lot_mask)

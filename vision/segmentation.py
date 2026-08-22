@@ -153,10 +153,57 @@ def _drop_building_width_regions(mask: np.ndarray, m_per_px: float) -> np.ndarra
     return mask & ~building_width_regions
 
 
-def segment_impervious(image: np.ndarray, exclude_mask: np.ndarray = None, m_per_px: float = None) -> np.ndarray:
+_SMOOTH_CLOSE_M = 0.8   # bridge shadow lines, tyre marks, sealant seams
+_SMOOTH_OPEN_M = 0.5    # drop isolated speckle
+_MIN_PAVING_PATCH_M2 = 2.0  # smaller than any real paved feature
+
+
+def _smooth(mask: np.ndarray, m_per_px: float) -> np.ndarray:
+    """Turn per-pixel colour hits into contiguous paved shapes.
+
+    HSV thresholding classifies each pixel independently, so a driveway
+    comes back stippled - shadows, tyre marks, sealant seams and gravel
+    texture all punch holes in what a person sees as one flat surface, and
+    stray grey pixels scatter across the lawn. Closing bridges the holes,
+    opening drops the scatter, and anything left that is smaller than a
+    real paved feature is discarded outright.
+    """
+    def disc(metres):
+        px = max(1, int(round(metres / m_per_px)))
+        return cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * px + 1, 2 * px + 1))
+
+    m = mask.astype(np.uint8)
+    m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, disc(_SMOOTH_CLOSE_M))
+    m = cv2.morphologyEx(m, cv2.MORPH_OPEN, disc(_SMOOTH_OPEN_M))
+
+    min_px = int(round(_MIN_PAVING_PATCH_M2 / (m_per_px ** 2)))
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(m, connectivity=8)
+    keep = np.zeros_like(m, dtype=bool)
+    for i in range(1, count):
+        if stats[i, cv2.CC_STAT_AREA] >= min_px:
+            keep |= labels == i
+    return keep
+
+
+def segment_impervious(
+    image: np.ndarray,
+    exclude_mask: np.ndarray = None,
+    m_per_px: float = None,
+    protect_mask: np.ndarray = None,
+) -> np.ndarray:
     """Grey asphalt/concrete via HSV thresholding (low saturation, mid-high
     value). Pools are excluded - see segment_pool - since a pool is not
-    pavement, even though naive thresholding often confuses the two."""
+    pavement, even though naive thresholding often confuses the two.
+
+    `protect_mask` is this property's own lot. The building-width filter
+    exists to strip neighbours' roofs, which colour alone can't tell from
+    asphalt - but it removes any grey region wide in both directions, and
+    a parking pad or patio is exactly that, so on-property paving was
+    being deleted along with the neighbours. Inside the lot the roof is
+    already excluded and the lot region no longer reaches next door, so
+    wide grey there is paving and is kept; outside it, the width test
+    still applies.
+    """
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
     lower = np.array([0, 0, 60])
     upper = np.array([180, 40, 210])
@@ -165,5 +212,11 @@ def segment_impervious(image: np.ndarray, exclude_mask: np.ndarray = None, m_per
     if exclude_mask is not None:
         mask &= ~exclude_mask
     if m_per_px is not None:
-        mask = _drop_building_width_regions(mask, m_per_px)
+        narrowed = _drop_building_width_regions(mask, m_per_px)
+        if protect_mask is not None:
+            # Keep whatever the width test removed from inside our own lot.
+            mask = narrowed | (mask & protect_mask)
+        else:
+            mask = narrowed
+        mask = _smooth(mask, m_per_px)
     return mask
