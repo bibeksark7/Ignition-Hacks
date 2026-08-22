@@ -161,6 +161,10 @@ def analyze_at_with_images(
     )
     five_m_ring = features.within_distance_ring(roof_mask, 5.0, m_per_px)
     canopy_within_5m_pct = features.pct_within_region(canopy_mask, five_m_ring)
+    # Fragments are dropped before measuring, not just before drawing:
+    # grey confetti isn't paving, so it shouldn't inflate impervious_pct
+    # any more than it should show up on the overlay.
+    impervious_mask = features.drop_small_paving_fragments(impervious_mask & lot_mask, m_per_px)
     impervious_pct = features.pct_within_region(impervious_mask, lot_mask)
 
     feature_dict = {
@@ -211,6 +215,6 @@ def analyze_at_with_images(
         # (canopy_overlap_pct vs canopy_within_5m_pct), which is where it
         # belongs, rather than being encoded as opacity nobody can read.
         "canopy_mask": features.drop_thin_vegetation(canopy_mask & lot_mask, m_per_px),
-        "impervious_mask": impervious_mask & lot_mask,
+        "impervious_mask": impervious_mask,
     }
     return result, images

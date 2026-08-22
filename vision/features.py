@@ -125,6 +125,31 @@ def lot_area_m2(osm_target_area_m2: float = None, roof_area_m2: float = None) ->
     return round(estimate, 1)
 
 
+_MIN_PAVING_BLOB_M2 = 15.0
+
+
+def drop_small_paving_fragments(mask: np.ndarray, m_per_px: float) -> np.ndarray:
+    """Keep contiguous paved surfaces, drop grey confetti.
+
+    Real paving on a residential lot is a driveway, a patio, a walkway -
+    each a single surface of meaningful size. What the colour threshold
+    also picks up is small grey scraps: eave shadow, a strip of concrete
+    edging, part of a roof the roof mask missed. On the test property the
+    driveway and patio came back as 45 and 49 square metres, while five
+    further blobs of 1-12 square metres were all noise.
+
+    Dropping blobs below a floor removes those without touching the
+    surfaces that actually shed stormwater - which is what impervious_pct
+    is meant to measure.
+    """
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(mask.astype(np.uint8))
+    keep = np.zeros_like(mask, dtype=bool)
+    for i in range(1, count):
+        if stats[i, cv2.CC_STAT_AREA] * (m_per_px ** 2) >= _MIN_PAVING_BLOB_M2:
+            keep |= labels == i
+    return keep
+
+
 _MIN_VEG_WIDTH_M = 2.5
 
 
