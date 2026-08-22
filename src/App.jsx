@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import AddressMap from './AddressMap'
+import Cursor from './Cursor'
 import RiskGauge from './RiskGauge'
 import { gradeTone, gradeWord } from './grade'
 import { fetchAnalysis } from './api'
@@ -626,6 +627,7 @@ function App() {
 
   return (
     <div className="page">
+      <Cursor />
       {demo && (
         <div className="demo-banner" role="status">
           Offline demo. These are cached results from an earlier pipeline run, not a live
