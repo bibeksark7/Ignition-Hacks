@@ -142,6 +142,16 @@ def _dilate_by_radius_m(mask: np.ndarray, radius_m: float, m_per_px: float) -> n
 _LOT_SIDE_MARGIN_M = 3.0
 _LOT_END_MARGIN_M = 12.0
 
+# Below this share of the estimated lot, the roof mask is too small to have
+# come from a real house (seen in practice: 3.6 m2, a rooftop vent, when the
+# OSM lookup failed and SAM fell back to a bare point prompt). Orientation
+# taken from a mask that size is meaningless, and the rectangle built around
+# it is a sliver - which would make impervious_pct a ratio against almost no
+# area at all. Fall back to the circular buffer there: still only as good as
+# the roof mask, but at least a plausibly-sized region rather than a divide
+# by a sliver.
+_MIN_ROOF_SHARE_OF_LOT = 0.10
+
 
 def lot_region_mask(roof_mask: np.ndarray, lot_area_m2_val: float, m_per_px: float) -> np.ndarray:
     """Approximate the lot as an oriented rectangle around the house.
@@ -163,7 +173,8 @@ def lot_region_mask(roof_mask: np.ndarray, lot_area_m2_val: float, m_per_px: flo
     Falls back to the circular buffer when there's no roof mask to take an
     orientation from."""
     mask_u8 = roof_mask.astype(np.uint8)
-    if not roof_mask.any():
+    roof_area = mask_area_m2(roof_mask, m_per_px)
+    if not roof_mask.any() or roof_area < _MIN_ROOF_SHARE_OF_LOT * lot_area_m2_val:
         return _dilate_by_radius_m(roof_mask, math.sqrt(lot_area_m2_val / math.pi), m_per_px)
 
     contours = cv2.findContours(mask_u8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
