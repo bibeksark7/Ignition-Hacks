@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import AddressMap from './AddressMap'
+import RiskGauge from './RiskGauge'
 import { fetchAnalysis } from './api'
 import './App.css'
 
@@ -123,11 +124,14 @@ function RiskAndValue({ data }) {
     <section className="risk-and-value">
       <div className="headline-card risk-card">
         <div className="headline-label">Your annual risk cost</div>
-        <div className="headline-figure">{formatMoney(data.annual_premium)}/yr</div>
-        <div className="headline-sub">
-          Risk score <strong>{getOverallRiskScore(data)}/100</strong>
-          {data.risk_score?.grade && ` (${data.risk_score.grade})`}
-          {topDriver && <> — driven mostly by {topDriver.plain_language.toLowerCase()}</>}
+        <div className="risk-card-body">
+          <div>
+            <div className="headline-figure">{formatMoney(data.annual_premium)}/yr</div>
+            <div className="headline-sub">
+              {topDriver && <>Driven mostly by {topDriver.plain_language.toLowerCase()}</>}
+            </div>
+          </div>
+          <RiskGauge score={getOverallRiskScore(data)} grade={data.risk_score?.grade} />
         </div>
       </div>
       <div className="headline-card value-card">
@@ -169,7 +173,13 @@ function PerilBreakdown({ perils }) {
 }
 
 function MitigationCards({ mitigations }) {
-  const sorted = [...mitigations].sort((a, b) => a.payback_years - b.payback_years)
+  // Unmeasurable payback (null) sorts last, not first — `null - n` coerces to
+  // 0 and would otherwise land it at the top as if it paid back instantly.
+  const sorted = [...mitigations].sort((a, b) => {
+    if (a.payback_years == null) return 1
+    if (b.payback_years == null) return -1
+    return a.payback_years - b.payback_years
+  })
   return (
     <section className="mitigations">
       <h2>What you can do about it</h2>
