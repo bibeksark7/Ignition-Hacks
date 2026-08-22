@@ -82,7 +82,42 @@ def segment_pool(image: np.ndarray) -> np.ndarray:
     return cv2.inRange(hsv, lower, upper).astype(bool)
 
 
-def segment_impervious(image: np.ndarray, exclude_mask: np.ndarray = None) -> np.ndarray:
+_MIN_BUILDING_SHORT_SIDE_M = 6.0  # driveways/walkways are narrower than this
+
+
+def _drop_building_width_regions(mask: np.ndarray, m_per_px: float) -> np.ndarray:
+    """Remove parts of the paving mask that are too wide to be paving.
+
+    A grey roof and grey asphalt are nearly identical in colour, so colour
+    alone can't separate them - which is why neighbouring houses were being
+    painted as impervious surface. Geometry can: a driveway or walkway is
+    narrow (~3-4m across) however long it runs, while a house is wide in
+    both directions. This needs no OSM footprint for the neighbour, which
+    matters because OSM often hasn't mapped them.
+
+    Judged locally by width rather than per connected blob: the driveway
+    usually touches the neighbouring roof through a shared grey edge, so
+    the whole neighbourhood's paving is often one connected component -
+    scoring that component as a unit threw the driveway away along with
+    the roofs. A morphological opening keeps only the parts of the mask
+    wide enough to contain a building-sized disc, which is exactly the
+    "too wide to be paving" test, applied per-region instead of per-blob.
+    """
+    width_px = max(1, int(round(_MIN_BUILDING_SHORT_SIDE_M / m_per_px)))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (width_px, width_px))
+    mask_u8 = mask.astype(np.uint8)
+
+    # Opening keeps only what's wide enough to hold the disc, but that's the
+    # eroded *core* of each wide region - left alone it strips the middle of
+    # a neighbour's roof and leaves its rim behind. Dilating the core back
+    # out and re-intersecting with the original mask recovers the whole
+    # region without spilling onto anything that wasn't grey to begin with.
+    core = cv2.morphologyEx(mask_u8, cv2.MORPH_OPEN, kernel)
+    building_width_regions = cv2.bitwise_and(cv2.dilate(core, kernel), mask_u8).astype(bool)
+    return mask & ~building_width_regions
+
+
+def segment_impervious(image: np.ndarray, exclude_mask: np.ndarray = None, m_per_px: float = None) -> np.ndarray:
     """Grey asphalt/concrete via HSV thresholding (low saturation, mid-high
     value). Pools are excluded - see segment_pool - since a pool is not
     pavement, even though naive thresholding often confuses the two."""
@@ -93,4 +128,6 @@ def segment_impervious(image: np.ndarray, exclude_mask: np.ndarray = None) -> np
     mask &= ~segment_pool(image)
     if exclude_mask is not None:
         mask &= ~exclude_mask
+    if m_per_px is not None:
+        mask = _drop_building_width_regions(mask, m_per_px)
     return mask

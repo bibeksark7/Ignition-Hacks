@@ -106,7 +106,7 @@ def analyze_at_with_images(
         osm["other_building_polygons_m"], image.shape, m_per_px
     )
     impervious_mask = segmentation.segment_impervious(
-        image, exclude_mask=roof_mask | neighbor_buildings_mask
+        image, exclude_mask=roof_mask | neighbor_buildings_mask, m_per_px=m_per_px
     )
 
     roof_area_m2 = features.mask_area_m2(roof_mask, m_per_px)
@@ -142,10 +142,18 @@ def analyze_at_with_images(
     )
 
     result = {**feature_dict, **value}
+    # Display masks are clipped to the property, because that's what the
+    # numbers above actually measure: impervious_pct is the paved share of
+    # THIS lot, not of the whole tile, and canopy is scored over/near THIS
+    # structure. Shipping the raw whole-tile masks meant the UI painted the
+    # public road and the neighbours' yards - showing the user something
+    # the pipeline never counted, which read as "the CV is wrong" when the
+    # measurements were fine. Keep display and measurement on the same
+    # region so the overlay is an honest picture of the analysis.
     images = {
         "tile": image,
         "roof_mask": roof_mask,
-        "canopy_mask": canopy_mask,
-        "impervious_mask": impervious_mask,
+        "canopy_mask": canopy_mask & lot_mask,
+        "impervious_mask": impervious_mask & lot_mask,
     }
     return result, images
