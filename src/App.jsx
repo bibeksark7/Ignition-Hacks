@@ -776,6 +776,18 @@ function App() {
         </div>
       )}
 
+      {/* Set by the saved analysis the deployed build serves when there are no
+          local services to call. Precomputed figures must never be mistaken
+          for a live run, so this says so on the page rather than in a README
+          nobody opens. */}
+      {!demo && data?.is_saved_analysis && (
+        <div className="demo-banner" role="status">
+          Saved analysis. This is a real run of our pipeline over this address, stored so the
+          hosted site works without the vision and pricing services. Run it locally to measure a
+          new address live.
+        </div>
+      )}
+
       <header className="masthead">
         <div className="masthead-inner">
           <button type="button" className="wordmark" onClick={() => setEntered(false)}>

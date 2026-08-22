@@ -1,0 +1,197 @@
+{
+ "address": "43.69592,-79.32303",
+ "lat": 43.69592,
+ "lon": -79.32303,
+ "imagery_date": null,
+ "imagery_date_known": false,
+ "zoom": 19,
+ "roof_area_m2": 418.8,
+ "roof_material": "asphalt_shingle",
+ "roof_damage_score": 0.557,
+ "canopy_overlap_pct": 0.0,
+ "canopy_within_5m_pct": 17.8,
+ "impervious_pct": 7.8,
+ "lot_area_m2": 761.5,
+ "nearest_structure_m": 2.3,
+ "address_precision": "point",
+ "roof_segmentation_plausible": true,
+ "confidence": 0.75,
+ "estimated_value": 2334000.0,
+ "value_basis": "heuristic: footprint x neighborhood $/m2, condition-adjusted",
+ "value_confidence": "low",
+ "risk_score": {
+  "overall": 64.7,
+  "grade": "D",
+  "perils": {
+   "fire": 70.3,
+   "water": 62.2,
+   "wind_hail": 61.0
+  }
+ },
+ "annual_premium": 6213.01,
+ "coverage_amount": 2334000.0,
+ "perils": [
+  {
+   "name": "fire",
+   "premium": 1771.13,
+   "multiplier": 1.286,
+   "drivers": [
+    {
+     "feature": "nearest_structure_spacing",
+     "effect": 0.1617,
+     "plain_language": "Your home is only 2.3m from the nearest structure, which lets fire spread more easily"
+    },
+    {
+     "feature": "roof_material_fire_risk",
+     "effect": 0.045,
+     "plain_language": "Your asphalt shingle roof is more flammable than average"
+    },
+    {
+     "feature": "canopy_within_5m_pct",
+     "effect": 0.0445,
+     "plain_language": "18% of the area within 5m of your home has vegetation, a wildfire ember risk"
+    }
+   ]
+  },
+  {
+   "name": "water",
+   "premium": 2175.37,
+   "multiplier": 1.391,
+   "drivers": [
+    {
+     "feature": "hazard_flood",
+     "effect": 0.2925,
+     "plain_language": "Your area has elevated regional flood exposure"
+    },
+    {
+     "feature": "roof_damage_score",
+     "effect": 0.0557,
+     "plain_language": "Visible roof wear increases water and wind/hail risk"
+    },
+    {
+     "feature": "impervious_pct",
+     "effect": 0.0429,
+     "plain_language": "About 8% of your lot is paved, so stormwater has nowhere to soak in"
+    }
+   ]
+  },
+  {
+   "name": "wind_hail",
+   "premium": 1806.29,
+   "multiplier": 1.407,
+   "drivers": [
+    {
+     "feature": "roof_damage_score",
+     "effect": 0.1671,
+     "plain_language": "Visible roof wear increases water and wind/hail risk"
+    },
+    {
+     "feature": "hazard_wind_hail",
+     "effect": 0.14,
+     "plain_language": "Your area has elevated regional wind/hail exposure"
+    },
+    {
+     "feature": "roof_material_wind_risk",
+     "effect": 0.1,
+     "plain_language": "Your asphalt shingle roof is more vulnerable to wind and hail"
+    }
+   ]
+  }
+ ],
+ "mitigations": [
+  {
+   "action": "Repair and reseal roof",
+   "cost": 1400,
+   "annual_saving": 296.5,
+   "payback_years": 4.7,
+   "peril": "wind_hail",
+   "risk_score_delta": 4.5,
+   "co_benefit": "A sound roof surface sheds water and survives hail impact better"
+  },
+  {
+   "action": "Install ember-resistant vents",
+   "cost": 700,
+   "annual_saving": 104.1,
+   "payback_years": 6.7,
+   "peril": "fire",
+   "risk_score_delta": 1.9,
+   "co_benefit": "Stops wind-blown embers from entering the attic during a nearby fire"
+  },
+  {
+   "action": "Install a backwater valve",
+   "cost": 2500,
+   "annual_saving": 135.11,
+   "payback_years": 18.5,
+   "peril": "water",
+   "risk_score_delta": 2.5,
+   "co_benefit": "Stops sewer backup into the home during heavy rainfall events"
+  },
+  {
+   "action": "Install gutter guards",
+   "cost": 1100,
+   "annual_saving": 55.45,
+   "payback_years": 19.8,
+   "peril": "wind_hail",
+   "risk_score_delta": 0.8,
+   "co_benefit": "Prevents debris backup that contributes to water intrusion during storms"
+  },
+  {
+   "action": "Clear vegetation within 5m of structure",
+   "cost": 1200,
+   "annual_saving": 29.0,
+   "payback_years": 41.4,
+   "peril": "fire",
+   "risk_score_delta": 0.6,
+   "co_benefit": "Removes the primary ember-ignition pathway (a standard WUI mitigation)"
+  },
+  {
+   "action": "Upgrade to a Class-A fire-rated metal roof",
+   "cost": 32000,
+   "annual_saving": 127.8,
+   "payback_years": 250.4,
+   "peril": "fire",
+   "risk_score_delta": 2.0,
+   "co_benefit": "Non-combustible roofing survives ember exposure and radiant heat, and holds up to hail"
+  },
+  {
+   "action": "Remove limbs overhanging roof",
+   "cost": 500,
+   "annual_saving": 0.0,
+   "payback_years": null,
+   "peril": "fire",
+   "risk_score_delta": 0.0,
+   "co_benefit": "Reduces ignition pathway to structure"
+  },
+  {
+   "action": "Convert driveway to permeable pavers",
+   "cost": 9000,
+   "annual_saving": 0.0,
+   "payback_years": null,
+   "peril": "water",
+   "risk_score_delta": 0.0,
+   "co_benefit": "Lets stormwater infiltrate instead of overloading storm sewers"
+  }
+ ],
+ "premium_if_all_actions": 5465.05,
+ "risk_score_if_all_actions": {
+  "overall": 76.8,
+  "grade": "C",
+  "perils": {
+   "fire": 79.5,
+   "water": 72.3,
+   "wind_hail": 80.4
+  }
+ },
+ "disclaimer": "Demonstration model \u00e2\u20ac\u201d not an actuarial quote or a property appraisal.",
+ "home_value_estimate": 2334000.0,
+ "home_value_basis": "heuristic: footprint x neighborhood $/m2, condition-adjusted",
+ "home_value_confidence": "low",
+ "premium_pct_of_value": 0.0027,
+ "measurement_confidence": 0.75,
+ "low_confidence_warning": false,
+ "is_saved_analysis": true,
+ "imagery_png": "/demo/9-roblin/imagery.png",
+ "roof_mask_png": "/demo/9-roblin/roof.png",
+ "canopy_mask_png": "/demo/9-roblin/canopy.png",
+ "impervious_mask_png": "/demo/9-roblin/impervious.png"
+}
