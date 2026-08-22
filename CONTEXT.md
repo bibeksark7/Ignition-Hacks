@@ -206,16 +206,34 @@ Owns: address → measurements → risk score → value estimate.
 > merged into this contract's output. Confirmed working end-to-end
 > 2026-08-21.
 
-Known gotchas: shadows read as dark roof (check a north-facing roof early);
-pools read as impervious under naive thresholding; SAM segments the wrong
-thing if the prompt point is off by a few metres or lands on a lawn instead
-of the roof (`roof_segmentation_plausible` and `confidence` exist to catch
-this — cross-checks the segmented roof area against the real OSM building
-footprint at that point, and flags low confidence when they disagree by
-more than 3x); `address_precision` flags when geocoding only matched a
-street, not a specific house (Nominatim's Canadian residential coverage is
-genuinely spotty) — Workstream 03 should surface a pin-confirm prompt when
-`confidence` is low.
+**Real bugs found and fixed since the initial build (2026-08-22), in case
+anyone rediscovers the symptom:**
+- SAM point-prompted alone repeatedly segmented one roof plane, a shadow
+  patch, or the front lawn instead of the whole roof. Fixed: when an OSM
+  building footprint exists at that point, its bounding box (padded 8m —
+  SAM treats a box as a fairly hard spatial constraint, tested down to 3m
+  and it clipped roofs) is passed to SAM alongside the centroid point.
+  Fallback stays point-only when OSM has no coverage there (common —
+  residential coverage is genuinely spotty).
+- SAM's raw roof mask has small interior holes (vents, ridge lines,
+  shadows) — morphological closing fixes it, kernel tuned to 27x27
+  (15x15 was too small, only bridged ~7px gaps).
+- `lot_area_m2` (a heuristic: OSM footprint × 2.4) can come out smaller
+  than a correctly-measured roof when OSM's footprint is outdated (e.g.
+  a since-built addition). Fixed by flooring the lot estimate at
+  `roof_area_m2 / 0.55` rather than rejecting a correct roof measurement.
+- Mask PNGs sent to the frontend must have the mask in the **alpha
+  channel**, not plain grayscale — some browsers treat an opaque
+  (no-alpha) image as "fully revealed" under CSS `mask-image`, ignoring
+  the black/white content entirely. See `api.py`'s `_mask_png_data_uri`.
+- Pools read as impervious under naive grey-threshold pavement detection —
+  has its own saturated-blue-to-pale-cyan HSV range now, excluded from
+  the impervious mask.
+- `address_precision` flags when geocoding only matched a street, not a
+  specific house; `roof_segmentation_plausible` + `confidence` cross-check
+  the segmented roof area against the real OSM footprint and flag low
+  confidence when they disagree by more than ~4.5x — Workstream 03 should
+  surface a pin-confirm prompt when `confidence` is low.
 
 ### Workstream 02 · Risk & Pricing Engine
 
@@ -295,14 +313,21 @@ headline**, above the fold; premium/mitigations follow as supporting detail.
 - Before/after slider: score & premium if every mitigation were done
 - Loading state that names each pipeline step as it runs
 
-Endpoint contract:
+**Actual architecture (not the single-merged-endpoint plan originally
+sketched here) — two separate servers, frontend calls both and merges
+client-side:**
 ```
-GET /analyze?address=...
-  -> Workstream 01 features (Contract A)
-   + Workstream 02 pricing (Contract B)
-   + mask PNGs (base64 or URL)
-   + imagery tile
+GET  http://<vision-host>:8010/analyze?address=...  (or &lat=&lon=)
+  -> Contract A fields + imagery_png + roof_mask_png +
+     canopy_mask_png + impervious_mask_png (all base64 data URIs)
+
+POST http://<pricing-host>:8001/price   (body: the Contract A response above)
+  -> Contract B fields
 ```
+`src/api.js`'s `fetchAnalysis()` calls vision then pricing and spreads
+both into one object. See §14 below for how to actually get both servers
+running locally — this tripped up cross-machine testing more than once.
+
 Build against a hardcoded mock of this from hour two — never sit idle
 waiting for the backend to exist.
 
@@ -356,14 +381,14 @@ asked how the numbers were produced.
 
 | Piece | Use | Notes |
 |---|---|---|
-| Mapbox Static Images API | Aerial imagery | Free tier, get token hour one |
-| Esri World Imagery | Backup imagery | If Mapbox coverage is poor |
-| SAM / SAM 2 (Ultralytics) | Roof segmentation | Zero-shot, point-prompted, no training |
-| OpenCV, HSV thresholding | Canopy/pavement | Classical, instant, tunable |
-| Canada Flood Map Inventory | Flood hazard | Federal open data portal |
-| CWFIS datamart | Wildfire exposure | Canadian Wildland Fire Information System |
-| Microsoft Building Footprints | Ground-truth sanity check | Not a replacement for the vision pipeline |
-| FastAPI + SQLite | Backend | Or whatever the team already knows |
+| Mapbox Static Images API | Aerial imagery | Free tier. Esri backup was never needed - Mapbox coverage was fine |
+| OSM Nominatim | Geocoding | Free, no key. Residential precision is spotty - see gotchas above |
+| OSM Overpass API | Building footprints | Used for SAM prompting, neighbor exclusion, lot estimate - not just a sanity check as originally planned |
+| SAM / SAM 2 (Ultralytics) | Roof segmentation | Zero-shot, point + OSM-bbox prompted, no training |
+| OpenCV, HSV thresholding | Canopy/pavement/pool | Classical, instant, tunable |
+| Hardcoded hotspot/region table | Flood/wildfire/wind hazard | Workstream 02's own curated table, not a live feed from CWFIS/Flood Map Inventory as originally planned - see `pricing/hazards.py` |
+| FastAPI | Backend | Two separate services (vision + pricing), no database - `data/cache/` is flat JSON files |
+| React + Vite + Leaflet | Frontend | See `src/` |
 
 Figures sourced from Insurance Bureau of Canada catastrophe loss reporting,
 Square One insurance pricing documentation, published wildfire mitigation
@@ -380,3 +405,34 @@ illustrative — a demonstration model, not actuarial advice.
   then every 3 hours from hour 14), ideally run by the Workstream 04 owner.
 - Before merging into `main`, merge `main` into your own branch first and
   resolve conflicts locally.
+
+## 14. Running this locally (three servers, three terminals)
+
+```bash
+# Terminal 1 - vision (needs MAPBOX_TOKEN in .env - ask Workstream 01 for
+# theirs, or get your own free one; paste into your own .env, gitignored)
+.venv\Scripts\python.exe -m uvicorn api:app --port 8010 --host 0.0.0.0
+
+# Terminal 2 - pricing (no token needed)
+.venv\Scripts\python.exe -m uvicorn pricing.api:app --port 8001
+
+# Terminal 3 - frontend
+npm run dev
+```
+Open `http://localhost:5173`.
+
+- `--host 0.0.0.0` on the vision server matters if a teammate on the same
+  WiFi needs to reach your machine (found the hard way — without it,
+  the server only accepts connections from itself).
+- Point a teammate's frontend at your servers instead of running your own:
+  create `.env.local` (gitignored, per-machine) with
+  `VITE_VISION_API_BASE=http://<their-LAN-IP>:8010` and
+  `VITE_PRICING_API_BASE=http://<their-LAN-IP>:8001`. Use the raw IP
+  (`192.168.x.x`), not `localhost` — hit a real IPv4/IPv6 resolution
+  mismatch using `localhost` across machines.
+- `uvicorn --reload` has been unreliable this session (silently served
+  stale code after a file change more than once) — if a fix doesn't seem
+  to be taking effect, kill the server fully and restart it plain
+  (without `--reload`) rather than trusting a hot-reload happened.
+- Demo-address cache lives in `data/cache/` (gitignored, per-machine).
+  `GET /analyze?...&fresh=true` bypasses it for a live re-run.
