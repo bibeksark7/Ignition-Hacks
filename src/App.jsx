@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import AddressMap from './AddressMap'
-import Cursor from './Cursor'
+import Rail from './Rail'
+import TitlePage from './TitlePage'
 import RiskGauge from './RiskGauge'
 import { gradeTone, gradeWord } from './grade'
 import { fetchAnalysis } from './api'
 import { isDemoMode } from './demoData'
+import { useCountUp, useReveal } from './motion'
+import { useTheme } from './theme'
 import './App.css'
+// Loaded last on purpose. The sheet treatment restates surfaces that App.css
+// styles as soft cards, and at equal specificity the later stylesheet wins -
+// so ordering, not !important, is what makes it hold.
+import './sheet.css'
 
 const PERIL_LABELS = {
   fire: 'Fire',
@@ -62,6 +69,39 @@ function titleCase(slug) {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+/* Headline words rise in sequence. Split on spaces rather than characters:
+   per-letter animation on a full sentence reads as a gimmick and, more
+   practically, hands a screen reader a pile of single letters. Each word keeps
+   its trailing space so the line still wraps normally. */
+function StaggeredWords({ text, step = 55 }) {
+  const words = text.split(' ')
+  return (
+    <>
+      {words.map((word, i) => (
+        <span
+          key={`${word}-${i}`}
+          className="stagger-word"
+          style={{ animationDelay: `${i * step}ms` }}
+        >
+          {word}
+          {i < words.length - 1 ? ' ' : ''}
+        </span>
+      ))}
+    </>
+  )
+}
+
+/* Headline figures are entry points, not endpoints. Clicking one takes you to
+   the section that explains it, which is the question a person actually has
+   when they read a number they did not expect. */
+function jumpTo(id) {
+  const el = document.getElementById(id)
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  el.classList.add('is-targeted')
+  window.setTimeout(() => el.classList.remove('is-targeted'), 1400)
+}
+
 function topDriverOf(peril) {
   const drivers = peril?.drivers ?? []
   if (!drivers.length) return null
@@ -82,7 +122,7 @@ const PIPELINE_STEPS = [
   'Locating the property',
   'Fetching the aerial photo',
   'Tracing the roof outline',
-  'Measuring tree cover and paving',
+  'Measuring vegetation and paving',
   'Checking regional flood and fire exposure',
   'Pricing the risk',
 ]
@@ -128,7 +168,7 @@ function Pipeline() {
 
 const LAYERS = [
   { key: 'roof', label: 'Roof', tone: 'roof' },
-  { key: 'canopy', label: 'Tree cover', tone: 'canopy' },
+  { key: 'canopy', label: 'Vegetation', tone: 'canopy' },
   { key: 'impervious', label: 'Paved surface', tone: 'water' },
 ]
 
@@ -147,7 +187,7 @@ function Evidence({ data }) {
       sub: titleCase(data.roof_material),
     },
     {
-      label: 'Tree cover over roof',
+      label: 'Vegetation over roof',
       value: pct(data.canopy_overlap_pct),
       tone: 'canopy',
       sub: data.canopy_within_5m_pct != null ? `${pct(data.canopy_within_5m_pct)} within 5 m` : null,
@@ -167,7 +207,7 @@ function Evidence({ data }) {
   ]
 
   return (
-    <section className="section">
+    <section className="section" id="measurements">
       <div className="section-head">
         <h2>{hasImagery ? 'What the photo shows' : 'What we measured'}</h2>
         <p className="section-lede">
@@ -276,8 +316,13 @@ function Verdict({ data }) {
   const homeValue = data.home_value_estimate ?? data.estimated_value
   const valueConfidence = data.home_value_confidence ?? data.value_confidence
 
+  // The two headline figures count up once they scroll into view. They are the
+  // numbers the whole page exists to deliver, so they get the one flourish.
+  const [premiumRef, premiumCount] = useCountUp(data.annual_premium)
+  const [valueRef, valueCount] = useCountUp(homeValue)
+
   return (
-    <section className="section verdict">
+    <section className="section verdict" id="verdict">
       <div className={`panel score-panel tone-${tone}`}>
         <div className="score-copy">
           <p className="score-eyebrow">Safety score</p>
@@ -291,29 +336,72 @@ function Verdict({ data }) {
               : 'Scored from the four measurements above and regional hazard data.'}
           </p>
         </div>
-        <RiskGauge score={score} grade={grade} />
+        <button
+          type="button"
+          className="gauge-link"
+          onClick={() => jumpTo('measurements')}
+          aria-label={`Safety score ${score ?? ''} out of 100. See the measurements behind it.`}
+        >
+          <RiskGauge score={score} grade={grade} />
+          <span className="gauge-link-hint">Why this score?</span>
+        </button>
       </div>
 
       <div className="stack">
         <div className="panel stat-panel">
           <p className="stat-label">Yearly cost of this risk</p>
-          <p className="stat-figure tnum">{money(data.annual_premium)}</p>
+          <button
+            type="button"
+            className="stat-figure stat-figure-link tnum"
+            ref={premiumRef}
+            onClick={() => jumpTo('cost-breakdown')}
+          >
+            {money(premiumCount)}
+            <span className="stat-figure-hint">See where it comes from</span>
+          </button>
           <p className="stat-sub">
             What a full year of coverage on this home prices out to in our model.
           </p>
         </div>
 
-        <div className="panel stat-panel">
+        <div className="panel stat-panel value-panel">
           <p className="stat-label">Estimated home value</p>
-          <p className="stat-figure tnum">{money(homeValue)}</p>
-          <p className="stat-sub">
-            A rough estimate, not an appraisal ({valueConfidence ?? 'low'} confidence)
-            {data.premium_pct_of_value != null && (
-              <>
-                . Risk costs {(data.premium_pct_of_value * 100).toFixed(2)}% of that value each year
-              </>
+          <p className="stat-figure tnum" ref={valueRef}>{money(valueCount)}</p>
+          {/* Showing the working, because this figure is the least certain
+              number on the page and a bare total invites more trust than it
+              has earned. Every input here is one we actually measured. */}
+          <div className="value-source">
+            {data.roof_area_m2 != null && (
+              <p className="value-source-row">
+                <span>Measured roof footprint</span>
+                <span>{Math.round(data.roof_area_m2)} m²</span>
+              </p>
             )}
-            .
+            <p className="value-source-row">
+              <span>Assumed floor area</span>
+              <span>
+                {data.roof_area_m2 != null ? `${Math.round(data.roof_area_m2 * 1.6)} m²` : '-'}
+              </span>
+            </p>
+            <p className="value-source-row">
+              <span>Regional price per m²</span>
+              <span>
+                {data.roof_area_m2 && homeValue
+                  ? money(homeValue / (data.roof_area_m2 * 1.6))
+                  : '-'}
+              </span>
+            </p>
+            {data.premium_pct_of_value != null && (
+              <p className="value-source-row">
+                <span>Risk cost as share of value</span>
+                <span>{(data.premium_pct_of_value * 100).toFixed(2)}% a year</span>
+              </p>
+            )}
+          </div>
+          <p className="value-caveat">
+            Derived from the roof we measured and a regional price per square metre. It is
+            not an appraisal and has not been checked against a sale or a listing, so treat
+            it as a rough scale rather than a valuation ({valueConfidence ?? 'low'} confidence).
           </p>
         </div>
       </div>
@@ -327,24 +415,50 @@ function Verdict({ data }) {
 
 function CostBreakdown({ perils, total }) {
   const sum = perils.reduce((acc, p) => acc + p.premium, 0) || 1
+  // Pointing at a band names it and prices it right there, so the bar answers
+  // "what is that red part costing me" without a trip to the legend.
+  const [held, setHeld] = useState(null)
 
   return (
-    <section className="section">
+    <section className="section" id="cost-breakdown">
       <div className="section-head">
         <h2>Where that cost comes from</h2>
         <p className="section-lede">
-          Every dollar is attached to something we measured or looked up. No postal code averages.
+          Every dollar is attached to something we measured. Point at a band to price it.
         </p>
       </div>
 
-      <div className="composition" role="img" aria-label="Share of yearly cost by peril">
+      <div className="composition" aria-label="Share of yearly cost by peril">
         {perils.map((p) => (
-          <div
+          <button
+            type="button"
             key={p.name}
-            className={`composition-seg tone-${PERIL_TONE[p.name] ?? 'roof'}`}
+            className={`composition-seg tone-${PERIL_TONE[p.name] ?? 'roof'}${held === p.name ? ' is-held' : ''}${held && held !== p.name ? ' is-muted' : ''}`}
             style={{ flexGrow: p.premium / sum }}
+            onMouseEnter={() => setHeld(p.name)}
+            onMouseLeave={() => setHeld(null)}
+            onFocus={() => setHeld(p.name)}
+            onBlur={() => setHeld(null)}
+            aria-label={`${PERIL_LABELS[p.name] ?? p.name}: ${money(p.premium)} a year, ${Math.round((p.premium / sum) * 100)} percent of the total`}
           />
         ))}
+      </div>
+
+      <div className={`composition-readout${held ? ' is-shown' : ''}`} aria-live="polite">
+        {(() => {
+          const p = perils.find((x) => x.name === held)
+          if (!p) return <span className="composition-readout-idle">Point at a band to see what it costs</span>
+          return (
+            <>
+              <span className={`composition-readout-key tone-${PERIL_TONE[p.name] ?? 'roof'}`} aria-hidden="true" />
+              <span className="composition-readout-name">{PERIL_LABELS[p.name] ?? titleCase(p.name)}</span>
+              <span className="composition-readout-value tnum">{money(p.premium)}</span>
+              <span className="composition-readout-share tnum">
+                {Math.round((p.premium / sum) * 100)}% of the total
+              </span>
+            </>
+          )
+        })()}
       </div>
 
       <ul className="peril-list">
@@ -456,7 +570,7 @@ function Actions({ data }) {
   const shownGrade = allDone ? data.risk_score_if_all_actions?.grade : data.risk_score?.grade
 
   return (
-    <section className="section actions-section">
+    <section className="section actions-section" id="what-to-do">
       <div className="section-head">
         <h2>What you can do about it</h2>
         <p className="section-lede">
@@ -533,6 +647,18 @@ function Actions({ data }) {
 /* report                                                                      */
 /* -------------------------------------------------------------------------- */
 
+/* Wrapper so a section lifts in the first time it is scrolled to. Kept as a
+   wrapper rather than a prop on each section so the sections themselves stay
+   unaware of animation entirely. */
+function Reveal({ children }) {
+  const [ref, shown] = useReveal()
+  return (
+    <div ref={ref} className={`reveal${shown ? ' is-in' : ''}`}>
+      {children}
+    </div>
+  )
+}
+
 function Report({ data }) {
   return (
     <>
@@ -542,12 +668,16 @@ function Report({ data }) {
       </div>
 
       <ConfidenceNote data={data} />
-      <Verdict data={data} />
-      <Evidence data={data} />
+      <Reveal><Verdict data={data} /></Reveal>
+      <Reveal><Evidence data={data} /></Reveal>
       {data.perils?.length > 0 && (
-        <CostBreakdown perils={data.perils} total={data.annual_premium} />
+        <Reveal>
+          <CostBreakdown perils={data.perils} total={data.annual_premium} />
+        </Reveal>
       )}
-      {data.mitigations?.length > 0 && <Actions data={data} />}
+      {data.mitigations?.length > 0 && (
+        <Reveal><Actions data={data} /></Reveal>
+      )}
 
       <section className="section footnotes">
         <h2 className="footnotes-title">Read this before you quote any of it</h2>
@@ -624,10 +754,20 @@ function App() {
   }, [data])
 
   const demo = isDemoMode()
+  const [theme, toggleTheme] = useTheme()
+  // The title page is the entry point; the tool proper is behind the CTA.
+  const [entered, setEntered] = useState(false)
+
+  if (!entered) {
+    return (
+      <>
+        <TitlePage onEnter={() => setEntered(true)} />
+      </>
+    )
+  }
 
   return (
     <div className="page">
-      <Cursor />
       {demo && (
         <div className="demo-banner" role="status">
           Offline demo. These are cached results from an earlier pipeline run, not a live
@@ -637,26 +777,42 @@ function App() {
 
       <header className="masthead">
         <div className="masthead-inner">
-          <span className="wordmark">Sightline</span>
+          <button type="button" className="wordmark" onClick={() => setEntered(false)}>
+            Sightline
+          </button>
           {data && (
             <button type="button" className="btn btn-quiet" onClick={reset}>
               New address
             </button>
           )}
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-pressed={theme === 'dark'}
+            title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}
+          >
+            <span className="theme-toggle-track" aria-hidden="true">
+              <span className="theme-toggle-knob" />
+            </span>
+            {theme === 'light' ? 'Light' : 'Dark'}
+          </button>
         </div>
       </header>
 
       <main className="shell">
         {!data && !loading && (
           <section className="intro">
-            <h1 className="intro-title">
-              See what your home&rsquo;s risk is really costing you.
-            </h1>
-            <p className="intro-lede">
-              We measure your roof, tree cover and paving from the aerial photo, then show which
-              fixes pay for themselves.
-            </p>
-            <AddressMap onConfirm={handleAnalyze} loading={loading} />
+            <div className="intro-copy">
+              <h1 className="intro-title">
+                <StaggeredWords text="See what your home’s risk is really costing you." />
+              </h1>
+              <p className="intro-lede">
+                We measure your roof, vegetation and paving from the aerial photo, then show which
+                fixes pay for themselves.
+              </p>
+              <AddressMap onConfirm={handleAnalyze} loading={loading} />
+            </div>
           </section>
         )}
 
@@ -674,15 +830,9 @@ function App() {
         )}
 
         <div ref={reportRef}>{data && !loading && <Report data={data} />}</div>
+        {data && !loading && <Rail />}
       </main>
 
-      <footer className="colophon">
-        <p>
-          Sightline automates a practice the insurance industry abandoned for cost reasons. From
-          1875, Charles E. Goad hand-drew colour-coded fire insurance plans of Canadian cities so
-          underwriters could price a block without visiting it. The colours on this page are his.
-        </p>
-      </footer>
     </div>
   )
 }

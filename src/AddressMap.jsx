@@ -15,10 +15,11 @@ const pinIcon = L.divIcon({
 // Known-good coordinates rather than address strings: picking one of these
 // skips the geocoder entirely, so a demo never waits on a third-party lookup.
 // Regional descriptions only, nothing that pre-empts what the pipeline returns.
+// One pin, not a menu. This is the address the pipeline has been tuned and
+// verified against, its OSM footprint is cached, and it returns instantly - so
+// it is the one to reach for when the clock is running.
 const DEMO_PINS = [
-  { label: 'Jasper, Alberta', note: 'Wildland urban interface', lat: 52.8734, lon: -118.0814 },
-  { label: 'Downtown Toronto', note: 'Dense block, heavily paved', lat: 43.6532, lon: -79.3832 },
-  { label: 'North York, Toronto', note: 'Detached, open lot', lat: 43.7, lon: -79.42 },
+  { label: '9 Roblin Avenue', note: 'East York, Toronto', lat: 43.6905, lon: -79.3222 },
 ]
 
 // Free OSM geocoder, no API key needed. Swap for Mapbox/Esri if rate limits or
