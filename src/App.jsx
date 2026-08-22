@@ -68,7 +68,11 @@ function ImageryPanel({ data }) {
             {layers.impervious && <div className="mask mask-impervious" />}
           </div>
         )}
-        <div className="capture-date">Imagery captured {data.imagery_date}</div>
+        <div className="capture-date">
+          {data.imagery_date_known === false || !data.imagery_date
+            ? 'Imagery capture date unknown — may be stale'
+            : `Imagery captured ${data.imagery_date}`}
+        </div>
       </div>
       <div className="layer-toggles">
         <label>
@@ -88,12 +92,24 @@ function ImageryPanel({ data }) {
   )
 }
 
+// Real field names from workstream-01's live output (not the low_confidence_warning/
+// low_confidence_reason fields workstream-02 described — those don't exist on the
+// actual response, this reads what's really there instead).
 function LowConfidenceBanner({ data }) {
-  if (!data.low_confidence_warning) return null
+  const implausible = data.roof_segmentation_plausible === false
+  const lowConfidence = typeof data.confidence === 'number' && data.confidence < 0.5
+  if (!implausible && !lowConfidence) return null
+
+  const reasons = []
+  if (data.address_precision && data.address_precision !== 'exact') {
+    reasons.push(`address only resolved to ${data.address_precision}-level precision`)
+  }
+  if (implausible) reasons.push('roof segmentation looked implausible')
+
   return (
     <div className="callout-warning">
-      Low-confidence measurement{data.low_confidence_reason ? `: ${data.low_confidence_reason}` : ''} — the
-      segmentation may have missed part of the roof. Numbers below are a rougher estimate than usual.
+      Low-confidence measurement{reasons.length ? `: ${reasons.join(', ')}` : ''} — try dragging the pin
+      directly onto the roof for a better result. Numbers below may be unreliable.
     </div>
   )
 }
