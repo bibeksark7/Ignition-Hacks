@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import cv2
 
-from vision import imagery, segmentation
+from vision import imagery, segmentation, features, footprints
 
 lat, lon = 43.5183, -79.8774
 if len(sys.argv) == 3:
@@ -13,9 +13,13 @@ tile = imagery.fetch_tile(lat, lon)
 image = np.array(tile["image"])
 center = (image.shape[1] // 2, image.shape[0] // 2)
 
+osm = footprints.query_buildings(lat, lon)
+m_per_px = features.meters_per_pixel(lat, tile["zoom"], tile["retina"])
+neighbor_mask = features.rasterize_local_polygons(osm["other_building_polygons_m"], image.shape, m_per_px)
+
 roof_mask = segmentation.segment_roof(image, center)
 canopy_mask = segmentation.segment_canopy(image)
-impervious_mask = segmentation.segment_impervious(image, exclude_mask=roof_mask)
+impervious_mask = segmentation.segment_impervious(image, exclude_mask=roof_mask | neighbor_mask)
 
 overlay = image.copy()
 overlay[roof_mask] = (0.5 * overlay[roof_mask] + 0.5 * np.array([220, 40, 40])).astype("uint8")

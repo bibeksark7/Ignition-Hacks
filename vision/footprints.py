@@ -75,7 +75,7 @@ def query_buildings(lat: float, lon: float) -> dict:
         resp.raise_for_status()
         elements = resp.json().get("elements", [])
     except (requests.RequestException, ValueError):
-        return {"target_area_m2": None, "nearest_structure_m": None}
+        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": []}
 
     polygons = []
     for el in elements:
@@ -86,7 +86,7 @@ def query_buildings(lat: float, lon: float) -> dict:
         polygons.append(coords)
 
     if not polygons:
-        return {"target_area_m2": None, "nearest_structure_m": None}
+        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": []}
 
     target = None
     for poly in polygons:
@@ -104,4 +104,5 @@ def query_buildings(lat: float, lon: float) -> dict:
     return {
         "target_area_m2": round(_polygon_area(target), 1),
         "nearest_structure_m": round(nearest, 1) if nearest is not None else None,
+        "other_building_polygons_m": others,
     }

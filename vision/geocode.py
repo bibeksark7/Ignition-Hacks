@@ -37,7 +37,11 @@ def geocode(address: str) -> dict:
 
     top = results[0]
     addresstype = top.get("addresstype", "")
-    is_precise = addresstype in ("house", "building")
+    # "place" covers OSM place=house nodes, which are a common and usually
+    # accurate way residential points are tagged in Canada - treating only
+    # "house"/"building" as precise wrongly flagged real, well-placed
+    # addresses as low-confidence.
+    is_precise = addresstype in ("house", "building", "place")
 
     return {
         "lat": float(top["lat"]),
