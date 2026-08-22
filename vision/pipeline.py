@@ -149,7 +149,15 @@ def analyze_at_with_images(
         image,
         exclude_mask=roof_mask | neighbor_buildings_mask,
         m_per_px=m_per_px,
-        use_width_filter=not have_surveyed_buildings,
+        # Always on. Subtracting the surveyed outlines was supposed to make
+        # this redundant, but OSM footprints are not registered tightly
+        # enough to the imagery to rely on - measured centroid offsets of
+        # 2.4m to 7.6m across the demo set - so the outlines routinely miss
+        # the roof they are meant to remove. With the filter off, those
+        # uncovered roof slabs read as asphalt: 68A Bexhill reported 45.6%
+        # impervious with blue painted across a flat grey roof, and it
+        # drops to 8.4% with the filter restored.
+        use_width_filter=True,
     )
     five_m_ring = features.within_distance_ring(roof_mask, 5.0, m_per_px)
     canopy_within_5m_pct = features.pct_within_region(canopy_mask, five_m_ring)
