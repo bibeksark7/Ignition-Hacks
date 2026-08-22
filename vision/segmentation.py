@@ -34,7 +34,7 @@ def segment_roof(image: np.ndarray, point_xy: tuple, bbox_xyxy: tuple = None) ->
     results = model(image, **kwargs)
     mask = results[0].masks.data[0].cpu().numpy().astype(np.uint8)
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (27, 27))
     closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
     return closed.astype(bool)
 
