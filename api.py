@@ -9,6 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from vision.pipeline import analyze_with_images, analyze_at_with_images
 from vision.cache import load as cache_load, save as cache_save
 
+try:
+    from pricing.engine import analyze as price_analyze
+except ImportError:
+    # pricing/ only exists once Workstream 02's branch is merged in - keep
+    # this endpoint usable standalone (features + images only) until then.
+    price_analyze = None
+
 app = FastAPI(title="Sightline - Workstream 01 Vision API")
 
 app.add_middleware(
@@ -63,7 +70,14 @@ def analyze_endpoint(
     else:
         result, images = analyze_at_with_images(lat, lon)
 
-    response = _build_response(result, images)
+    pricing = {}
+    if price_analyze is not None:
+        try:
+            pricing = price_analyze(result, coverage_amount=None)
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+
+    response = {**_build_response(result, images), **pricing}
     cache_save(cache_key, response)
     return response
 
