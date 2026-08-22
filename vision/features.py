@@ -131,15 +131,64 @@ def _dilate_by_radius_m(mask: np.ndarray, radius_m: float, m_per_px: float) -> n
     return cv2.dilate(mask.astype(np.uint8), kernel).astype(bool)
 
 
+# Suburban lots are narrow and deep, not round. Side yards are genuinely
+# tight - nearest_structure_m across the demo set comes back 1.3-4.1m - so
+# the region should barely clear the house sideways, while front and back
+# yards absorb most of the lot's area. 3m sideways is chosen to still
+# contain a driveway running alongside the house (driveways are ~3-4m
+# wide); the front/back cap keeps a large lot-area estimate from pushing
+# the region out into the public road, where the asphalt would read as
+# this property's impervious surface.
+_LOT_SIDE_MARGIN_M = 3.0
+_LOT_END_MARGIN_M = 12.0
+
+
 def lot_region_mask(roof_mask: np.ndarray, lot_area_m2_val: float, m_per_px: float) -> np.ndarray:
-    """Approximate lot boundary as a buffer around the roof, sized so the
-    buffered region's area matches the estimated lot size. There's no real
-    parcel polygon available (OSM has no cadastral data), so this treats
-    the lot as roughly circular around the house - rough, but far closer
-    to 'this property' than counting the whole satellite tile, which
-    includes the street and neighbouring lots."""
-    lot_radius_m = math.sqrt(lot_area_m2_val / math.pi)
-    return _dilate_by_radius_m(roof_mask, lot_radius_m, m_per_px)
+    """Approximate the lot as an oriented rectangle around the house.
+
+    There's no real parcel polygon available (OSM has no cadastral data),
+    so this is a heuristic either way - but the shape of the heuristic
+    matters. A circle sized to match the lot area has to reach a long way
+    in *every* direction to cover that area, which pushes it deep into the
+    neighbours on both sides; their grey roofs then land inside "this
+    property" and get counted as its impervious surface, which is exactly
+    the failure this replaces.
+
+    Real suburban lots are narrow across the frontage and deep front to
+    back, and the house is aligned to them. So take the roof's own
+    orientation (via its minimum-area rectangle), clear it only narrowly
+    on the sides, and extend front-to-back to make up the lot area. That
+    keeps the region on this property instead of the neighbours'.
+
+    Falls back to the circular buffer when there's no roof mask to take an
+    orientation from."""
+    mask_u8 = roof_mask.astype(np.uint8)
+    if not roof_mask.any():
+        return _dilate_by_radius_m(roof_mask, math.sqrt(lot_area_m2_val / math.pi), m_per_px)
+
+    contours = cv2.findContours(mask_u8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+    largest = max(contours, key=cv2.contourArea)
+    centre, (w_px, h_px), angle = cv2.minAreaRect(largest)
+
+    short_m, long_m = sorted((w_px * m_per_px, h_px * m_per_px))
+    lot_short_m = short_m + 2 * _LOT_SIDE_MARGIN_M
+    # Depth makes up whatever area is left, but never less than the house
+    # itself and never more than a plausible front+back yard beyond it.
+    lot_long_m = min(max(lot_area_m2_val / lot_short_m, long_m), long_m + 2 * _LOT_END_MARGIN_M)
+
+    # Map the short/long pair back onto the rect's own (width, height) axes.
+    if w_px <= h_px:
+        size_px = (lot_short_m / m_per_px, lot_long_m / m_per_px)
+    else:
+        size_px = (lot_long_m / m_per_px, lot_short_m / m_per_px)
+
+    lot = np.zeros(roof_mask.shape[:2], dtype=np.uint8)
+    box = cv2.boxPoints((centre, size_px, angle)).astype(np.int32)
+    cv2.fillPoly(lot, [box], 1)
+    # The rectangle is built around the roof's minAreaRect, which a concave
+    # or L-shaped roof can poke outside of - union it back in so the lot
+    # always contains the whole house.
+    return lot.astype(bool) | roof_mask
 
 
 def within_distance_ring(roof_mask: np.ndarray, distance_m: float, m_per_px: float) -> np.ndarray:
