@@ -12,6 +12,14 @@ function formatMoney(n) {
   return n.toLocaleString('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })
 }
 
+// Contract A in CONTEXT.md defines risk_score as a flat number, but the
+// merged response may end up shaping it as { overall, ... } instead
+// (workstream-02's risk-score conflict). Accept either so this layer
+// doesn't break depending on which shape wins.
+function getOverallRiskScore(data) {
+  return typeof data.risk_score === 'object' ? data.risk_score.overall : data.risk_score
+}
+
 function AddressEntry({ onAnalyze, loading }) {
   const [address, setAddress] = useState('')
 
@@ -88,7 +96,7 @@ function RiskAndValue({ data }) {
         <div className="headline-label">Your annual risk cost</div>
         <div className="headline-figure">{formatMoney(data.annual_premium)}/yr</div>
         <div className="headline-sub">
-          Risk score <strong>{data.risk_score}/100</strong> — driven mostly by{' '}
+          Risk score <strong>{getOverallRiskScore(data)}/100</strong> — driven mostly by{' '}
           {data.risk_score_breakdown[0].top_driver.replaceAll('_', ' ')}
         </div>
       </div>
