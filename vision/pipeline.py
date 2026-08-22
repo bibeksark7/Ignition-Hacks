@@ -63,12 +63,25 @@ def analyze_at_with_images(
 
     image = np.array(tile["image"])
     center = (image.shape[1] // 2, image.shape[0] // 2)
+    m_per_px = features.meters_per_pixel(lat, tile["zoom"], tile["retina"])
 
-    roof_mask = segmentation.segment_roof(image, center)
+    # Prefer the real OSM building centroid over the raw geocoded point as
+    # SAM's prompt point, when available: a geocoder's address point often
+    # lands on the yard/driveway/street rather than the structure itself
+    # (confirmed in testing - a "place" node landed squarely on a front
+    # lawn), while an OSM building footprint is real surveyed geometry.
+    # Falls back to the tile centre when OSM has no coverage here.
+    prompt_point = center
+    if osm["target_centroid_m"] is not None:
+        cx_m, cy_m = osm["target_centroid_m"]
+        px = int(round(center[0] + cx_m / m_per_px))
+        py = int(round(center[1] - cy_m / m_per_px))
+        if 0 <= px < image.shape[1] and 0 <= py < image.shape[0]:
+            prompt_point = (px, py)
+
+    roof_mask = segmentation.segment_roof(image, prompt_point)
     canopy_mask = segmentation.segment_canopy(image)
     roof_plausible = features.roof_segmentation_is_plausible(roof_mask)
-
-    m_per_px = features.meters_per_pixel(lat, tile["zoom"], tile["retina"])
 
     neighbor_buildings_mask = features.rasterize_local_polygons(
         osm["other_building_polygons_m"], image.shape, m_per_px

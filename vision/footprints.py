@@ -43,6 +43,30 @@ def _point_to_segment_dist(px, py, x1, y1, x2, y2):
     return math.hypot(px - proj_x, py - proj_y)
 
 
+def _polygon_centroid(coords):
+    """Area-weighted (shoelace) centroid - correct for irregular building
+    shapes, unlike a plain vertex average."""
+    area = 0.0
+    cx = 0.0
+    cy = 0.0
+    n = len(coords)
+    for i in range(n):
+        x1, y1 = coords[i]
+        x2, y2 = coords[(i + 1) % n]
+        cross = x1 * y2 - x2 * y1
+        area += cross
+        cx += (x1 + x2) * cross
+        cy += (y1 + y2) * cross
+    area *= 0.5
+    if abs(area) < 1e-9:
+        xs = [p[0] for p in coords]
+        ys = [p[1] for p in coords]
+        return sum(xs) / n, sum(ys) / n
+    cx /= 6 * area
+    cy /= 6 * area
+    return cx, cy
+
+
 def _polygon_min_dist(coords_a, coords_b):
     best = float("inf")
     for i in range(len(coords_b)):
@@ -75,7 +99,7 @@ def query_buildings(lat: float, lon: float) -> dict:
         resp.raise_for_status()
         elements = resp.json().get("elements", [])
     except (requests.RequestException, ValueError):
-        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": []}
+        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_centroid_m": None}
 
     polygons = []
     for el in elements:
@@ -86,7 +110,7 @@ def query_buildings(lat: float, lon: float) -> dict:
         polygons.append(coords)
 
     if not polygons:
-        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": []}
+        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_centroid_m": None}
 
     target = None
     for poly in polygons:
@@ -105,4 +129,5 @@ def query_buildings(lat: float, lon: float) -> dict:
         "target_area_m2": round(_polygon_area(target), 1),
         "nearest_structure_m": round(nearest, 1) if nearest is not None else None,
         "other_building_polygons_m": others,
+        "target_centroid_m": _polygon_centroid(target),
     }
