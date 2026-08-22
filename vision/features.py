@@ -175,6 +175,51 @@ def drop_thin_vegetation(mask: np.ndarray, m_per_px: float) -> np.ndarray:
     return cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_OPEN, kernel).astype(bool)
 
 
+_PAVING_REACH_M = 4.0
+
+
+def paving_connected_to_house(mask: np.ndarray, roof_mask: np.ndarray, m_per_px: float) -> np.ndarray:
+    """Keep paved surfaces that belong to this house, drop stranded scraps.
+
+    A driveway runs from the house to the street; a patio abuts the back
+    wall; a walkway leads to the door. They are all physically continuous
+    with the structure. What isn't continuous with it - a slab of kerb or
+    sidewalk caught at the far end of the lot rectangle, a corner of the
+    neighbour's pad - isn't this property's paving, however grey it is.
+
+    Extending the lot far enough to capture the whole driveway inevitably
+    reaches the street, so this is what keeps the pavement out there from
+    being counted as the homeowner's runoff.
+    """
+    if not roof_mask.any():
+        return mask
+    near_house = _dilate_by_radius_m(roof_mask, _PAVING_REACH_M, m_per_px)
+    count, labels, _, _ = cv2.connectedComponentsWithStats(mask.astype(np.uint8))
+    keep = np.zeros_like(mask, dtype=bool)
+    for i in range(1, count):
+        blob = labels == i
+        if (blob & near_house).any():
+            keep |= blob
+    return keep
+
+
+def dominant_blob(mask: np.ndarray) -> np.ndarray:
+    """Keep only the largest contiguous region of a mask.
+
+    Used for the vegetation overlay: within the proximity region around a
+    house there is usually one vegetation feature that actually matters -
+    the tree beside the structure - plus scraps of lawn. Showing the
+    dominant mass makes the overlay point at something, instead of tinting
+    every green pixel and leaving the viewer to guess which one is the
+    hazard. The measured percentages are unaffected; this is display only.
+    """
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(mask.astype(np.uint8))
+    if count <= 1:
+        return mask
+    biggest = max(range(1, count), key=lambda i: stats[i, cv2.CC_STAT_AREA])
+    return labels == biggest
+
+
 def _dilate_by_radius_m(mask: np.ndarray, radius_m: float, m_per_px: float) -> np.ndarray:
     radius_px = max(1, int(round(radius_m / m_per_px)))
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * radius_px + 1, 2 * radius_px + 1))
@@ -196,7 +241,8 @@ _LOT_END_MARGIN_M = 14.0
 # the house to the street, and the masks shown in the UI are clipped to this
 # region - too short a rectangle crops the driveway off mid-way and leaves
 # only a halo of paving around the house, which is what it did before.
-_LOT_MIN_END_M = 10.0
+_LOT_MIN_END_M = 16.0        # paving: reaches the street, so the driveway counts
+_VEG_END_M = 10.0             # vegetation: proximity risk, so a shorter reach
 
 # Below this share of the estimated lot, the roof mask is too small to have
 # come from a real house (seen in practice: 3.6 m2, a rooftop vent, when the
@@ -209,8 +255,22 @@ _LOT_MIN_END_M = 10.0
 _MIN_ROOF_SHARE_OF_LOT = 0.10
 
 
-def lot_region_mask(roof_mask: np.ndarray, lot_area_m2_val: float, m_per_px: float) -> np.ndarray:
+def lot_region_mask(
+    roof_mask: np.ndarray,
+    lot_area_m2_val: float,
+    m_per_px: float,
+    min_end_m: float = None,
+) -> np.ndarray:
     """Approximate the lot as an oriented rectangle around the house.
+
+    `min_end_m` overrides how far the rectangle reaches past each end of
+    the house. Paving and vegetation want different reaches, and for a
+    real reason rather than convenience: every paved surface on the parcel
+    sheds stormwater, including the driveway running out to the street, so
+    paving is measured over the full depth. Vegetation risk is proximity
+    risk - the mitigation is "clear vegetation within 5m of the structure"
+    - so counting a lawn at the far end of the lot as this house's fire
+    exposure would overstate it. Vegetation therefore uses a shorter reach.
 
     There's no real parcel polygon available (OSM has no cadastral data),
     so this is a heuristic either way - but the shape of the heuristic
@@ -241,9 +301,10 @@ def lot_region_mask(roof_mask: np.ndarray, lot_area_m2_val: float, m_per_px: flo
     lot_short_m = short_m + 2 * _LOT_SIDE_MARGIN_M
     # Depth makes up whatever area is left, but never less than the house
     # itself and never more than a plausible front+back yard beyond it.
+    end_m = _LOT_MIN_END_M if min_end_m is None else min_end_m
     lot_long_m = min(
-        max(lot_area_m2_val / lot_short_m, long_m + 2 * _LOT_MIN_END_M),
-        long_m + 2 * _LOT_END_MARGIN_M,
+        max(lot_area_m2_val / lot_short_m, long_m + 2 * end_m),
+        long_m + 2 * max(_LOT_END_MARGIN_M, end_m + 4.0),
     )
 
     # Map the short/long pair back onto the rect's own (width, height) axes.

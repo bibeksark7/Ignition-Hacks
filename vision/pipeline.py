@@ -161,10 +161,21 @@ def analyze_at_with_images(
     )
     five_m_ring = features.within_distance_ring(roof_mask, 5.0, m_per_px)
     canopy_within_5m_pct = features.pct_within_region(canopy_mask, five_m_ring)
+
+    # Vegetation gets a shorter reach than paving (see lot_region_mask):
+    # fire exposure is proximity-driven, so a lawn at the far end of a deep
+    # lot shouldn't read as this house's risk, while every paved metre out
+    # to the street still sheds stormwater.
+    veg_region = features.lot_region_mask(
+        roof_mask, lot_area_m2, m_per_px, min_end_m=features._VEG_END_M
+    )
+    veg_display = features.drop_thin_vegetation(canopy_mask & veg_region, m_per_px)
+    veg_display = features.dominant_blob(veg_display)
     # Fragments are dropped before measuring, not just before drawing:
     # grey confetti isn't paving, so it shouldn't inflate impervious_pct
     # any more than it should show up on the overlay.
     impervious_mask = features.drop_small_paving_fragments(impervious_mask & lot_mask, m_per_px)
+    impervious_mask = features.paving_connected_to_house(impervious_mask, roof_mask, m_per_px)
     impervious_pct = features.pct_within_region(impervious_mask, lot_mask)
 
     feature_dict = {
@@ -214,7 +225,7 @@ def analyze_at_with_images(
         # detected. Severity still comes through in the numbers
         # (canopy_overlap_pct vs canopy_within_5m_pct), which is where it
         # belongs, rather than being encoded as opacity nobody can read.
-        "canopy_mask": features.drop_thin_vegetation(canopy_mask & lot_mask, m_per_px),
+        "canopy_mask": veg_display,
         "impervious_mask": impervious_mask,
     }
     return result, images
