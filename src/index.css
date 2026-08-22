@@ -19,51 +19,62 @@
 --------------------------------------------------------------------------- */
 
 :root {
-  /* surfaces and ink */
-  --paper: #f7edf4;
-  --surface: #ffffff;
-  --surface-sunk: #f3e6ef;
-  --plate: #1c1730;
-  --ink: #2e2740;
-  --ink-2: #6b6280;
-  --ink-3: #9d95ad;
-  --line: #ebdcea;
-  --line-strong: #d6bde4;
+  /* Palette:
+     #27B5D9  #2CC9DA  #47DCE2  #90E0DD  #EDEAE1  #9FD693  #87C76D
+     Deep cyan through aqua to leaf green, over a warm bone ground. Cool
+     everywhere except the paper, which stops the page reading clinical. */
 
-  /* hover: the cool note */
-  --hover-wash: #e6edfb;
-  --hover-line: #98a4d8;
+  /* surfaces and ink */
+  --paper: #edeae1;
+  --surface: #ffffff;
+  --surface-sunk: #e4e1d6;
+  --plate: #0b1e24;
+  --ink: #0f272e;
+  --ink-2: #41616a;
+  --ink-3: #7b959c;
+  --line: #dbd7ca;
+  --line-strong: #c0d2d2;
+
+  /* hover: lift toward the accent */
+  --hover-wash: #e2f5fa;
+  --hover-line: #47dce2;
 
   /* accent */
-  --accent: #ce90c8;
-  --accent-hover: #b96bb0;
-  --accent-ink: #8e4c88;
-  --accent-wash: #f8e9f6;
+  --accent: #27b5d9;
+  --accent-hover: #1d9ab9;
+  --accent-ink: #17708a;
+  --accent-wash: #e4f5fa;
 
-  /* peril colours */
-  --roof: #fec0b3;
-  --roof-ink: #c05f47;
-  --roof-wash: #fff0eb;
+  /* Peril colours. Roof takes the bone rather than a hue on purpose: it is the
+     subject of the analysis, it sits on grey shingle in the photo, and a light
+     neutral is both the most legible mask and the one that can never be
+     confused with the two coloured layers beside it. */
+  --roof: #edeae1;
+  --roof-ink: #7f7a6b;
+  --roof-wash: #f7f5ef;
 
-  --canopy: #b3d6bd;
-  --canopy-ink: #4f8663;
-  --canopy-wash: #eaf5ee;
+  --canopy: #9fd693;
+  --canopy-ink: #4e8c3f;
+  --canopy-wash: #eff8ec;
 
-  --water: #98a4d8;
-  --water-ink: #5561a8;
-  --water-wash: #eaeefb;
+  --water: #47dce2;
+  --water-ink: #17708a;
+  --water-wash: #e4f7fa;
 
-  --wind: #d6bde4;
-  --wind-ink: #8b62a3;
-  --wind-wash: #f6ecfa;
+  --wind: #90e0dd;
+  --wind-ink: #3f8d8a;
+  --wind-wash: #e9f8f7;
 
-  /* verdict scale, higher score is safer */
-  --good: #4f8663;
-  --good-soft: #b3d6bd;
-  --fair: #b8863f;
-  --fair-soft: #fdd9a8;
-  --poor: #c05f47;
-  --poor-soft: #fec0b3;
+  /* Verdict scale, higher score is safer. Green (safe) to deep cyan (most
+     exposed) rather than green-amber-red: there is no warm end to this
+     palette, and a cool ramp still reads as a ramp while saturation climbs
+     with severity. */
+  --good: #4e8c3f;
+  --good-soft: #9fd693;
+  --fair: #3f8d8a;
+  --fair-soft: #90e0dd;
+  --poor: #17708a;
+  --poor-soft: #47dce2;
 
   --display: 'Outfit', ui-sans-serif, 'Segoe UI', system-ui, Helvetica, Arial, sans-serif;
   --sans: 'Outfit', ui-sans-serif, 'Segoe UI', system-ui, Helvetica, Arial, sans-serif;
@@ -85,50 +96,51 @@
 }
 
 /* --- DARK ------------------------------------------------------------------
-   Deep plum rather than black, so the same pastels can sit on it. Every
-   accent is lifted: a pastel on a dark ground reads muddy at its light value.
+   Deep teal rather than black, so the palette's own cyans sit on it as if lit
+   rather than pasted on. Ink is the bone from the palette, not white, which
+   keeps the warm note that stops the page reading clinical.
 --------------------------------------------------------------------------- */
 :root[data-theme='dark'] {
-  --paper: #1b1528;
-  --surface: #251e35;
-  --surface-sunk: #150f20;
-  --plate: #0d0916;
-  --ink: #f3ecf6;
-  --ink-2: #b3a8c4;
-  --ink-3: #837799;
-  --line: #342a48;
-  --line-strong: #4a3d63;
+  --paper: #0b1e24;
+  --surface: #10282f;
+  --surface-sunk: #071619;
+  --plate: #050f13;
+  --ink: #edeae1;
+  --ink-2: #a3bfc3;
+  --ink-3: #6d8d94;
+  --line: #16333b;
+  --line-strong: #234c56;
 
-  --hover-wash: #26304f;
-  --hover-line: #98a4d8;
+  --hover-wash: #123640;
+  --hover-line: #47dce2;
 
-  --accent: #e0a8db;
-  --accent-hover: #eec2ea;
-  --accent-ink: #f0cdec;
-  --accent-wash: #3320310;
+  --accent: #47dce2;
+  --accent-hover: #90e0dd;
+  --accent-ink: #90e0dd;
+  --accent-wash: #0f333a;
 
-  --roof: #fec0b3;
-  --roof-ink: #ffd4c9;
-  --roof-wash: #33211c;
+  --roof: #edeae1;
+  --roof-ink: #edeae1;
+  --roof-wash: #2a2a25;
 
-  --canopy: #b3d6bd;
-  --canopy-ink: #cbe6d3;
-  --canopy-wash: #1c2c22;
+  --canopy: #9fd693;
+  --canopy-ink: #b9e3ae;
+  --canopy-wash: #16301a;
 
-  --water: #98a4d8;
-  --water-ink: #bcc5ea;
-  --water-wash: #1f2540;
+  --water: #47dce2;
+  --water-ink: #8ceaee;
+  --water-wash: #0f333a;
 
-  --wind: #d6bde4;
-  --wind-ink: #e7d5f0;
-  --wind-wash: #2c2138;
+  --wind: #90e0dd;
+  --wind-ink: #b4eceb;
+  --wind-wash: #143537;
 
-  --good: #b3d6bd;
-  --good-soft: #4f8663;
-  --fair: #fdd9a8;
-  --fair-soft: #b8863f;
-  --poor: #fec0b3;
-  --poor-soft: #c05f47;
+  --good: #9fd693;
+  --good-soft: #4e8c3f;
+  --fair: #90e0dd;
+  --fair-soft: #3f8d8a;
+  --poor: #47dce2;
+  --poor-soft: #17708a;
 
   --shadow-sm: none;
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.45);

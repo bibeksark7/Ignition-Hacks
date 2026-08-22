@@ -464,6 +464,11 @@
 
 .section {
   margin-top: 44px;
+  /* The masthead is sticky and 64px tall, so scrollIntoView({block:'start'})
+     was parking each section's heading underneath it - clicking the score
+     landed you on the photo with "What the photo shows" hidden above the
+     fold, which read as jumping to the wrong place. */
+  scroll-margin-top: 84px;
 }
 
 .section-head {

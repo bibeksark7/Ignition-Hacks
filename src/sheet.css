@@ -181,11 +181,26 @@
   color: var(--ink-3);
 }
 
+/* Carries the title page's .title-mark treatment into the masthead so the
+   wordmark does not change character when you enter the report: light weight,
+   wide tracking, uppercase. It is a <button> (it returns you to the title
+   page) and nothing else resets button chrome, so the browser default was
+   painting a grey pill behind the text. */
 .wordmark {
   font-family: var(--display);
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-weight: 300;
+  letter-spacing: 0.42em;
   text-transform: uppercase;
+  font-size: 1.05rem;
+  /* The trailing letterspace hangs off the last glyph; pull it back so the
+     wordmark still sits flush with the masthead's left edge. */
+  margin-right: -0.42em;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 @media (max-width: 860px) {
