@@ -16,6 +16,10 @@ const pinIcon = L.divIcon({
 // skips the geocoder entirely, so a demo never waits on a third-party lookup.
 // Regional descriptions only, nothing that pre-empts what the pipeline returns.
 const DEMO_PINS = [
+  // First on purpose: this is the walkthrough property. Its analysis is
+  // pre-cached on the vision server, so it returns instantly instead of
+  // running a cold segmentation pass in front of an audience.
+  { label: '9 Roblin Ave, Toronto', note: 'Semi-detached, driveway and back patio', lat: 43.69592, lon: -79.32303 },
   { label: 'Jasper, Alberta', note: 'Wildland urban interface', lat: 52.8734, lon: -118.0814 },
   { label: 'Downtown Toronto', note: 'Dense block, heavily paved', lat: 43.6532, lon: -79.3832 },
   { label: 'North York, Toronto', note: 'Detached, open lot', lat: 43.7, lon: -79.42 },

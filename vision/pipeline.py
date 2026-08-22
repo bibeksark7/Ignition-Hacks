@@ -176,6 +176,10 @@ def analyze_at_with_images(
     # any more than it should show up on the overlay.
     impervious_mask = features.drop_small_paving_fragments(impervious_mask & lot_mask, m_per_px)
     impervious_mask = features.paving_connected_to_house(impervious_mask, roof_mask, m_per_px)
+    # Done last, and re-clipped: filling car/shadow holes must not let the
+    # surface spill past the lot or over the roof it abuts.
+    impervious_mask = features.close_paving_gaps(impervious_mask, m_per_px)
+    impervious_mask &= lot_mask & ~roof_mask
     impervious_pct = features.pct_within_region(impervious_mask, lot_mask)
 
     feature_dict = {

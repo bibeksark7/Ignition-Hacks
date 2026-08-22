@@ -175,6 +175,34 @@ def drop_thin_vegetation(mask: np.ndarray, m_per_px: float) -> np.ndarray:
     return cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_OPEN, kernel).astype(bool)
 
 
+_PAVING_FILL_M = 3.0
+
+
+def close_paving_gaps(mask: np.ndarray, m_per_px: float) -> np.ndarray:
+    """Fill the holes vehicles and shadow punch through a paved surface.
+
+    A driveway with a car on it is still a driveway - the ground under the
+    car is asphalt and sheds every drop that lands on it. But the car is
+    white or dark, not grey, so the colour threshold cuts a hole straight
+    through the middle of the surface and the driveway arrives as two
+    disconnected scraps. Eave shadow across a patio does the same thing.
+
+    A closing bridges gaps up to roughly a car's width, and filling
+    enclosed holes afterwards catches anything fully surrounded by paving.
+    Neither can grow the surface outward past its real edge.
+    """
+    px = max(1, int(round(_PAVING_FILL_M / m_per_px)))
+    if px % 2 == 0:
+        px += 1
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (px, px))
+    closed = cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
+
+    contours = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+    filled = np.zeros_like(closed)
+    cv2.drawContours(filled, contours, -1, 1, thickness=cv2.FILLED)
+    return filled.astype(bool)
+
+
 _PAVING_REACH_M = 4.0
 
 
