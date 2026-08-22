@@ -218,6 +218,32 @@ def within_distance_ring(roof_mask: np.ndarray, distance_m: float, m_per_px: flo
     return buffered & ~roof_mask
 
 
+# Alpha ramp for the canopy overlay, by distance from the structure. Nearer
+# canopy is the more dangerous canopy (a branch on the roof is an ignition
+# path; a tree 5m away is not), so the overlay ranks severity visually
+# instead of painting one flat colour over everything it found.
+_CANOPY_ALPHA_BANDS = ((1.5, 0.85), (3.0, 0.65), (5.0, 0.45))
+
+
+def canopy_display_alpha(
+    canopy_mask: np.ndarray, roof_mask: np.ndarray, m_per_px: float
+) -> np.ndarray:
+    """Canopy overlay as graduated alpha in [0, 1] rather than a flat mask.
+
+    Scoped to exactly what the pipeline actually measures - canopy on or
+    within 5m of the structure - so the overlay stays an honest picture of
+    the analysis and never paints canopy that no number accounts for."""
+    outside = (~roof_mask).astype(np.uint8)
+    dist_m = cv2.distanceTransform(outside, cv2.DIST_L2, 5) * m_per_px
+
+    alpha = np.zeros(canopy_mask.shape[:2], dtype=np.float32)
+    for edge_m, level in reversed(_CANOPY_ALPHA_BANDS):
+        alpha[dist_m <= edge_m] = level
+    alpha[roof_mask] = 1.0  # on the structure itself: highest severity
+
+    return alpha * canopy_mask
+
+
 def rasterize_local_polygons(polygons_m: list, image_shape: tuple, m_per_px: float) -> np.ndarray:
     """Neighbouring buildings' OSM footprints (local metre coords, origin at
     the query point) -> a pixel mask, so they can be excluded from the
