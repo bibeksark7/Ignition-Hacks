@@ -43,15 +43,23 @@ EXPECTED = {
 
 
 def _overlay(images: dict) -> np.ndarray:
-    out = images["tile"].copy()
+    """Blend each mask over the tile proportionally to its strength.
+
+    Masks may be boolean OR graduated floats in [0, 1] - canopy now ships
+    as distance-graded alpha. Blending by strength (rather than boolean
+    indexing) handles both, and makes the gradient visible here too, so the
+    overlays show what the UI will actually render.
+    """
+    out = images["tile"].astype(np.float32)
     for key, colour in (
         ("impervious_mask", (40, 100, 220)),
         ("canopy_mask", (40, 200, 60)),
         ("roof_mask", (220, 40, 40)),
     ):
-        m = images[key]
-        out[m] = (0.5 * out[m] + 0.5 * np.array(colour)).astype("uint8")
-    return out
+        strength = images[key].astype(np.float32)
+        a = (0.5 * strength)[..., None]
+        out = out * (1.0 - a) + np.array(colour, dtype=np.float32) * a
+    return out.astype("uint8")
 
 
 def main() -> None:

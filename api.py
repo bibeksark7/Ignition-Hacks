@@ -39,7 +39,12 @@ def _png_data_uri(image: np.ndarray) -> str:
 
 
 def _mask_png_data_uri(mask: np.ndarray) -> str:
-    """Boolean mask -> RGBA PNG data URI with the mask in the ALPHA channel.
+    """Mask -> RGBA PNG data URI with the mask in the ALPHA channel.
+
+    Accepts either a boolean mask or a graduated float mask in [0, 1] (see
+    features.canopy_display_alpha, which fades canopy by distance from the
+    structure so the overlay ranks severity instead of painting one flat
+    tint). Both encode into alpha the same way.
 
     A plain opaque grayscale PNG is unreliable for CSS mask-image: some
     browsers treat an image with no transparency as "fully revealed"
@@ -52,7 +57,12 @@ def _mask_png_data_uri(mask: np.ndarray) -> str:
     h, w = mask.shape
     rgba = np.zeros((h, w, 4), dtype=np.uint8)
     rgba[..., 0:3] = 255
-    rgba[..., 3] = mask.astype(np.uint8) * 255
+    if mask.dtype == bool:
+        rgba[..., 3] = mask.astype(np.uint8) * 255
+    else:
+        # Casting a float mask to uint8 first would truncate every partial
+        # value to 0, silently erasing everything but full-strength pixels.
+        rgba[..., 3] = np.clip(mask * 255.0, 0, 255).astype(np.uint8)
     ok, buf = cv2.imencode(".png", rgba)
     if not ok:
         raise RuntimeError("PNG encoding failed")

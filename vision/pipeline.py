@@ -195,7 +195,13 @@ def analyze_at_with_images(
     images = {
         "tile": image,
         "roof_mask": roof_mask,
-        "canopy_mask": canopy_mask & lot_mask,
+        # Canopy ships as graduated alpha keyed to distance from the house,
+        # not a flat mask: nearer canopy is the dangerous canopy, and a
+        # single flat tint gave a branch on the roof and a tree at the lot
+        # edge identical visual weight. Scoped to the roof plus the 5m ring,
+        # matching what canopy_within_5m_pct actually measures, so the
+        # overlay still shows only what the numbers count.
+        "canopy_mask": features.canopy_display_alpha(canopy_mask, roof_mask, m_per_px),
         "impervious_mask": impervious_mask & lot_mask,
     }
     return result, images
