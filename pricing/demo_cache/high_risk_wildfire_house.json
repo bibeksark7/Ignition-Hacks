@@ -1,0 +1,190 @@
+{
+  "contract_a": {
+    "lat": 52.8734,
+    "lon": -118.0814,
+    "imagery_date": "2024-05-11",
+    "zoom": 19,
+    "roof_area_m2": 210.0,
+    "roof_material": "wood_shake",
+    "roof_damage_score": 0.55,
+    "canopy_overlap_pct": 78.0,
+    "canopy_within_5m_pct": 85.0,
+    "impervious_pct": 18.0,
+    "lot_area_m2": 950.0,
+    "nearest_structure_m": 4.2,
+    "confidence": 0.77,
+    "estimated_value": 610000,
+    "value_basis": "synthetic fixture \u2014 not a real estimate",
+    "value_confidence": "low"
+  },
+  "contract_b": {
+    "risk_score": {
+      "overall": 47.7,
+      "grade": "F",
+      "perils": {
+        "fire": 4.3,
+        "water": 75.3,
+        "wind_hail": 64.2
+      }
+    },
+    "annual_premium": 2372.61,
+    "coverage_amount": 610000,
+    "perils": [
+      {
+        "name": "fire",
+        "premium": 980.65,
+        "multiplier": 2.143,
+        "drivers": [
+          {
+            "feature": "canopy_overlap_pct",
+            "effect": 0.351,
+            "plain_language": "Trees cover about 78% of your roof, raising fire risk"
+          },
+          {
+            "feature": "hazard_wildfire",
+            "effect": 0.315,
+            "plain_language": "Your area has elevated regional wildfire exposure"
+          },
+          {
+            "feature": "canopy_within_5m_pct",
+            "effect": 0.2125,
+            "plain_language": "85% of the area within 5m of your home has vegetation, a wildfire ember risk"
+          }
+        ]
+      },
+      {
+        "name": "water",
+        "premium": 633.35,
+        "multiplier": 1.222,
+        "drivers": [
+          {
+            "feature": "impervious_pct",
+            "effect": 0.099,
+            "plain_language": "About 18% of your lot is paved, so stormwater has nowhere to soak in"
+          },
+          {
+            "feature": "hazard_flood",
+            "effect": 0.0675,
+            "plain_language": "Your area has elevated regional flood exposure"
+          },
+          {
+            "feature": "roof_damage_score",
+            "effect": 0.055,
+            "plain_language": "Visible roof wear increases water and wind/hail risk"
+          }
+        ]
+      },
+      {
+        "name": "wind_hail",
+        "premium": 582.86,
+        "multiplier": 1.365,
+        "drivers": [
+          {
+            "feature": "roof_damage_score",
+            "effect": 0.165,
+            "plain_language": "Visible roof wear increases water and wind/hail risk"
+          },
+          {
+            "feature": "roof_material_wind_risk",
+            "effect": 0.12,
+            "plain_language": "Your wood shake roof is more vulnerable to wind and hail"
+          },
+          {
+            "feature": "hazard_wind_hail",
+            "effect": 0.08,
+            "plain_language": "Your area has elevated regional wind/hail exposure"
+          }
+        ]
+      }
+    ],
+    "mitigations": [
+      {
+        "action": "Remove limbs overhanging roof",
+        "cost": 800,
+        "annual_saving": 162.31,
+        "payback_years": 4.9,
+        "peril": "fire",
+        "risk_score_delta": 8.8,
+        "co_benefit": "Reduces ignition pathway to structure"
+      },
+      {
+        "action": "Clear vegetation within 5m of structure",
+        "cost": 650,
+        "annual_saving": 92.64,
+        "payback_years": 7.0,
+        "peril": "fire",
+        "risk_score_delta": 5.0,
+        "co_benefit": "Removes the primary ember-ignition pathway (a standard WUI mitigation)"
+      },
+      {
+        "action": "Install gutter guards",
+        "cost": 350,
+        "annual_saving": 18.44,
+        "payback_years": 19.0,
+        "peril": "wind_hail",
+        "risk_score_delta": 0.8,
+        "co_benefit": "Prevents debris backup that contributes to water intrusion during storms"
+      },
+      {
+        "action": "Repair and reseal roof",
+        "cost": 2200,
+        "annual_saving": 97.17,
+        "payback_years": 22.6,
+        "peril": "wind_hail",
+        "risk_score_delta": 4.4,
+        "co_benefit": "A sound roof surface sheds water and survives hail impact better"
+      },
+      {
+        "action": "Install ember-resistant vents",
+        "cost": 1200,
+        "annual_saving": 34.58,
+        "payback_years": 34.7,
+        "peril": "fire",
+        "risk_score_delta": 1.9,
+        "co_benefit": "Stops wind-blown embers from entering the attic during a nearby fire"
+      },
+      {
+        "action": "Install a backwater valve",
+        "cost": 2500,
+        "annual_saving": 44.8,
+        "payback_years": 55.8,
+        "peril": "water",
+        "risk_score_delta": 2.4,
+        "co_benefit": "Stops sewer backup into the home during heavy rainfall events"
+      },
+      {
+        "action": "Upgrade to a Class-A fire-rated metal roof",
+        "cost": 14000,
+        "annual_saving": 96.18,
+        "payback_years": 145.6,
+        "peril": "fire",
+        "risk_score_delta": 4.8,
+        "co_benefit": "Non-combustible roofing survives ember exposure and radiant heat, and holds up to hail"
+      },
+      {
+        "action": "Convert driveway to permeable pavers",
+        "cost": 4500,
+        "annual_saving": 0.0,
+        "payback_years": null,
+        "peril": "water",
+        "risk_score_delta": 0.0,
+        "co_benefit": "Lets stormwater infiltrate instead of overloading storm sewers"
+      }
+    ],
+    "premium_if_all_actions": 1826.46,
+    "risk_score_if_all_actions": {
+      "overall": 75.9,
+      "grade": "C",
+      "perils": {
+        "fire": 58.7,
+        "water": 85.3,
+        "wind_hail": 85.0
+      }
+    },
+    "disclaimer": "Demonstration model \u2014 not an actuarial quote or a property appraisal.",
+    "home_value_estimate": 610000,
+    "home_value_basis": "synthetic fixture \u2014 not a real estimate",
+    "home_value_confidence": "low",
+    "premium_pct_of_value": 0.0039
+  }
+}

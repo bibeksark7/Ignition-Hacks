@@ -36,6 +36,30 @@ def test_hazards_lookup_falls_back_to_default_outside_known_regions():
     assert isinstance(factors, HazardFactors)
 
 
+def test_hazards_hotspots_jasper_is_wildfire_dominant():
+    factors = lookup_hazards(52.8734, -118.0814)
+    assert factors.wildfire > 0.8
+    assert factors.wildfire > factors.flood
+
+
+def test_hazards_hotspots_calgary_is_hail_dominant():
+    factors = lookup_hazards(51.0447, -114.0719)
+    assert factors.wind_hail > 0.7
+    assert factors.wind_hail > factors.wildfire
+
+
+def test_hazards_demo_contrast_jasper_vs_gta_diverges_sharply():
+    jasper_house = dict(SAMPLE_CONTRACT_A, lat=52.8734, lon=-118.0814)
+    gta_house = dict(SAMPLE_CONTRACT_A, lat=43.6532, lon=-79.3832)
+
+    jasper_result = analyze(copy.deepcopy(jasper_house))
+    gta_result = analyze(copy.deepcopy(gta_house))
+
+    # Same physical measurements, different location -> fire risk should
+    # clearly favour the GTA house over the Jasper house.
+    assert jasper_result["risk_score"]["perils"]["fire"] < gta_result["risk_score"]["perils"]["fire"]
+
+
 def test_multiplier_increases_with_more_canopy_overlap():
     low = dict(SAMPLE_CONTRACT_A, canopy_overlap_pct=5.0)
     high = dict(SAMPLE_CONTRACT_A, canopy_overlap_pct=80.0)
