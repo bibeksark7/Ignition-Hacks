@@ -53,6 +53,39 @@ def roof_damage_score(image: np.ndarray, roof_mask: np.ndarray) -> float:
 
 
 _LOT_TO_FOOTPRINT_RATIO = 2.4  # typical suburban lot / building footprint ratio
+_MAX_PLAUSIBLE_ROOF_FRACTION = 0.35  # a discrete roof rarely fills more of the tile than this
+
+
+def roof_segmentation_is_plausible(mask: np.ndarray) -> bool:
+    """A mask covering an implausibly large share of the tile, or touching
+    all four edges, is more likely a road/field/lawn the prompt point
+    landed on than an actual discrete roof."""
+    total_px = mask.shape[0] * mask.shape[1]
+    fraction = mask.sum() / total_px
+    if fraction > _MAX_PLAUSIBLE_ROOF_FRACTION:
+        return False
+
+    touches_top = mask[0, :].any()
+    touches_bottom = mask[-1, :].any()
+    touches_left = mask[:, 0].any()
+    touches_right = mask[:, -1].any()
+    if touches_top and touches_bottom and touches_left and touches_right:
+        return False
+
+    return True
+
+
+def roof_matches_footprint(roof_area_m2: float, osm_target_area_m2: float = None) -> bool:
+    """Cross-check the segmented roof area against the real OSM building
+    footprint at this point, when one is available. A roof several times
+    larger or smaller than the actual building here means the prompt point
+    almost certainly landed on the wrong surface (lawn, road, neighbour's
+    lot) rather than the roof - this is a much stronger signal than mask
+    shape alone."""
+    if osm_target_area_m2 is None or osm_target_area_m2 <= 0:
+        return True
+    ratio = roof_area_m2 / osm_target_area_m2
+    return 0.3 <= ratio <= 3.0
 
 
 def nearest_structure_m(osm_value: float = None) -> float:

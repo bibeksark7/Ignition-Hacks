@@ -22,12 +22,21 @@ def segment_roof(image: np.ndarray, point_xy: tuple) -> np.ndarray:
 
 
 def segment_canopy(image: np.ndarray) -> np.ndarray:
-    """Green vegetation via HSV thresholding."""
+    """Tree canopy via HSV thresholding, distinguished from flat lawn by
+    local texture: tree cover has leaf/shadow variance that mowed grass
+    doesn't, so a low-variance green region is classified as lawn, not
+    canopy - the two carry very different fire risk."""
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
     lower = np.array([25, 40, 30])
     upper = np.array([95, 255, 255])
-    mask = cv2.inRange(hsv, lower, upper)
-    return mask.astype(bool)
+    green_mask = cv2.inRange(hsv, lower, upper).astype(bool)
+
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY).astype(np.float32)
+    mean = cv2.blur(gray, (9, 9))
+    local_var = cv2.blur((gray - mean) ** 2, (9, 9))
+    textured = local_var > 25.0
+
+    return green_mask & textured
 
 
 def segment_impervious(image: np.ndarray, exclude_mask: np.ndarray = None) -> np.ndarray:

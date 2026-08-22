@@ -3,12 +3,32 @@ import numpy as np
 from . import geocode, imagery, segmentation, features, footprints, scoring, valuation
 
 
+def _confidence(is_precise_match: bool, roof_plausible: bool, roof_matches_footprint: bool) -> float:
+    if not roof_plausible or not roof_matches_footprint:
+        return 0.15
+    return 0.75 if is_precise_match else 0.35
+
+
 def analyze(address: str, region_key: str = None) -> dict:
     """Address -> full Contract A payload."""
     loc = geocode.geocode(address)
-    region_key = region_key or loc["region_key"]
-    tile = imagery.fetch_tile(loc["lat"], loc["lon"])
-    osm = footprints.query_buildings(loc["lat"], loc["lon"])
+    return analyze_at(
+        loc["lat"], loc["lon"],
+        region_key=region_key or loc["region_key"],
+        address_precision=loc["address_precision"],
+        is_precise_match=loc["is_precise_match"],
+    )
+
+
+def analyze_at(
+    lat: float, lon: float, region_key: str = "default",
+    address_precision: str = "point", is_precise_match: bool = True,
+) -> dict:
+    """(lat, lon) -> full Contract A payload. Used directly after a
+    pin-confirm step, where the user-corrected coordinates are already
+    trusted and shouldn't be re-geocoded."""
+    tile = imagery.fetch_tile(lat, lon)
+    osm = footprints.query_buildings(lat, lon)
 
     image = np.array(tile["image"])
     center = (image.shape[1] // 2, image.shape[0] // 2)
@@ -16,18 +36,20 @@ def analyze(address: str, region_key: str = None) -> dict:
     roof_mask = segmentation.segment_roof(image, center)
     canopy_mask = segmentation.segment_canopy(image)
     impervious_mask = segmentation.segment_impervious(image, exclude_mask=roof_mask)
+    roof_plausible = features.roof_segmentation_is_plausible(roof_mask)
 
-    m_per_px = features.meters_per_pixel(loc["lat"], tile["zoom"], tile["retina"])
+    m_per_px = features.meters_per_pixel(lat, tile["zoom"], tile["retina"])
 
     roof_area_m2 = features.mask_area_m2(roof_mask, m_per_px)
     lot_area_m2 = features.lot_area_m2(osm["target_area_m2"])
+    roof_matches_footprint = features.roof_matches_footprint(roof_area_m2, osm["target_area_m2"])
     total_px = image.shape[0] * image.shape[1]
     canopy_pct = 100.0 * float(canopy_mask.sum()) / total_px
     impervious_pct = 100.0 * float(impervious_mask.sum()) / total_px
 
     feature_dict = {
-        "lat": loc["lat"],
-        "lon": loc["lon"],
+        "lat": lat,
+        "lon": lon,
         "imagery_date": tile["imagery_date"],
         "zoom": tile["zoom"],
         "roof_area_m2": round(roof_area_m2, 1),
@@ -38,8 +60,9 @@ def analyze(address: str, region_key: str = None) -> dict:
         "impervious_pct": round(impervious_pct, 1),
         "lot_area_m2": lot_area_m2,
         "nearest_structure_m": features.nearest_structure_m(osm["nearest_structure_m"]),
-        "address_precision": loc["address_precision"],
-        "confidence": 0.75 if loc["is_precise_match"] else 0.35,
+        "address_precision": address_precision,
+        "roof_segmentation_plausible": roof_plausible and roof_matches_footprint,
+        "confidence": _confidence(is_precise_match, roof_plausible, roof_matches_footprint),
     }
 
     risk = scoring.compute_risk_score(feature_dict)
