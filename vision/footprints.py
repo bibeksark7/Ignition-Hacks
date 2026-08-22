@@ -1,4 +1,5 @@
 import math
+import time
 
 import requests
 
@@ -89,17 +90,30 @@ def query_buildings(lat: float, lon: float) -> dict:
         f"way(around:{_SEARCH_RADIUS_M},{lat},{lon})[\"building\"];"
         "out geom;"
     )
-    try:
-        resp = requests.post(
-            _OVERPASS_URL,
-            data={"data": query},
-            headers={"User-Agent": "sightline-hackathon/0.1", "Accept": "*/*"},
-            timeout=20,
-        )
-        resp.raise_for_status()
-        elements = resp.json().get("elements", [])
-    except (requests.RequestException, ValueError):
-        return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_centroid_m": None, "target_bbox_m": None}
+    # Overpass is a free shared public service and transiently times out or
+    # errors under load - a single failed attempt used to silently fall
+    # back to no footprint data at all, which meant the same address could
+    # get much weaker point-only SAM prompting on one run and correct
+    # box+point prompting on the next (confirmed directly: one address
+    # returned a 3.6 sq m roof on one run, 428 sq m - the correct result -
+    # moments later with no code change). A couple of retries makes this
+    # actually reliable for the fixed demo address set.
+    elements = None
+    for attempt in range(3):
+        try:
+            resp = requests.post(
+                _OVERPASS_URL,
+                data={"data": query},
+                headers={"User-Agent": "sightline-hackathon/0.1", "Accept": "*/*"},
+                timeout=20,
+            )
+            resp.raise_for_status()
+            elements = resp.json().get("elements", [])
+            break
+        except (requests.RequestException, ValueError):
+            if attempt == 2:
+                return {"target_area_m2": None, "nearest_structure_m": None, "other_building_polygons_m": [], "target_centroid_m": None, "target_bbox_m": None}
+            time.sleep(1.5)
 
     polygons = []
     for el in elements:
