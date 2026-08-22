@@ -9,21 +9,29 @@ import { useEffect, useState } from 'react'
  * in front of a room.
  */
 
-const SECTIONS = [
+const REPORT_SECTIONS = [
   { id: 'verdict', label: 'The verdict' },
   { id: 'measurements', label: 'What we measured' },
   { id: 'cost-breakdown', label: 'Where the cost comes from' },
   { id: 'what-to-do', label: 'What to do about it' },
 ]
 
-export default function Rail() {
+/* The entry screen steps through the same way the report does, so the control
+   a person learns on the first screen still works on the second. */
+export const ENTRY_SECTIONS = [
+  { id: 'entry-start', label: 'Start' },
+  { id: 'entry-samples', label: 'Sample locations' },
+  { id: 'entry-confirm', label: 'Confirm the pin' },
+]
+
+export default function Rail({ sections = REPORT_SECTIONS }) {
   const [current, setCurrent] = useState(0)
   const [present, setPresent] = useState([])
 
   // Only offer steps for sections actually on the page, and track which one is
   // in view so the dots mean something.
   useEffect(() => {
-    const nodes = SECTIONS.map((s) => document.getElementById(s.id)).filter(Boolean)
+    const nodes = sections.map((s) => document.getElementById(s.id)).filter(Boolean)
     setPresent(nodes.map((n) => n.id))
     if (!nodes.length) return
 
@@ -32,18 +40,19 @@ export default function Rail() {
         const visible = entries.filter((e) => e.isIntersecting)
         if (!visible.length) return
         const top = visible.reduce((a, b) => (a.intersectionRatio > b.intersectionRatio ? a : b))
-        const i = SECTIONS.findIndex((s) => s.id === top.target.id)
+        const i = sections.findIndex((s) => s.id === top.target.id)
         if (i !== -1) setCurrent(i)
       },
       { threshold: [0.25, 0.5, 0.75], rootMargin: '-15% 0px -35% 0px' },
     )
     nodes.forEach((n) => io.observe(n))
     return () => io.disconnect()
-  }, [])
+    // Re-observe when the entry screen grows a confirm step mid-flow.
+  }, [sections, present.length])
 
   const go = (index) => {
-    const clamped = Math.max(0, Math.min(SECTIONS.length - 1, index))
-    const el = document.getElementById(SECTIONS[clamped].id)
+    const clamped = Math.max(0, Math.min(sections.length - 1, index))
+    const el = document.getElementById(sections[clamped].id)
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
@@ -58,7 +67,7 @@ export default function Rail() {
       </button>
 
       <ul className="rail-dots">
-        {SECTIONS.map((s, i) => (
+        {sections.map((s, i) => (
           <li key={s.id}>
             <button
               type="button"

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import AddressMap from './AddressMap'
-import Rail from './Rail'
+import GradientWaves from './GradientWaves'
+import Rail, { ENTRY_SECTIONS } from './Rail'
 import TitlePage from './TitlePage'
 import RiskGauge from './RiskGauge'
 import { gradeTone, gradeWord } from './grade'
@@ -803,13 +804,16 @@ function App() {
       <main className="shell">
         {!data && !loading && (
           <section className="intro">
-            <h1 className="intro-title">
-              <StaggeredWords text="See what your home’s risk is really costing you." />
-            </h1>
-            <p className="intro-lede">
-              We measure your roof, vegetation and paving from the aerial photo, then show which
-              fixes pay for themselves.
-            </p>
+            <GradientWaves />
+            <div className="intro-stage" id="entry-start">
+              <h1 className="intro-title">
+                <StaggeredWords text="See what your home’s risk is really costing you." />
+              </h1>
+              <p className="intro-lede">
+                We measure your roof, vegetation and paving from the aerial photo, then show which
+                fixes pay for themselves.
+              </p>
+            </div>
             <AddressMap onConfirm={handleAnalyze} loading={loading} />
           </section>
         )}
@@ -829,6 +833,7 @@ function App() {
 
         <div ref={reportRef}>{data && !loading && <Report data={data} />}</div>
         {data && !loading && <Rail />}
+        {!data && !loading && <Rail sections={ENTRY_SECTIONS} />}
       </main>
 
     </div>

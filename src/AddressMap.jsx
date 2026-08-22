@@ -129,26 +129,26 @@ export default function AddressMap({ onConfirm, loading }) {
   return (
     <div className="finder">
       <form className="finder-form" onSubmit={handleSearch}>
-        <label className="field-label" htmlFor="address-input">
-          Your home address
+        {/* Label is visually hidden rather than deleted: the placeholder is
+            the only visible naming now, and it vanishes the moment you type,
+            which would leave a screen reader on an unnamed field. */}
+        <label className="visually-hidden" htmlFor="address-input">
+          Enter address
         </label>
         <div className="field-row">
           <input
             id="address-input"
+            className="field-input-lg"
             type="text"
             autoComplete="street-address"
-            placeholder="123 Example St, Milton, ON"
+            placeholder="Enter address"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <button type="submit" className="btn btn-primary" disabled={status === 'searching'}>
+          <button type="submit" className="btn btn-primary btn-lg" disabled={status === 'searching'}>
             {status === 'searching' ? 'Searching' : 'Find home'}
           </button>
         </div>
-        <p className="field-help">
-          We look up the address, then you place the pin on the roof yourself before anything is
-          measured.
-        </p>
       </form>
 
       {status === 'notfound' && (
@@ -163,7 +163,7 @@ export default function AddressMap({ onConfirm, loading }) {
         </p>
       )}
 
-      <div className="demo-picks">
+      <div className="demo-picks" id="entry-samples">
         <span className="demo-picks-label">Or start from a sample location</span>
         <div className="demo-picks-row">
           {DEMO_PINS.map((d) => (
@@ -182,7 +182,7 @@ export default function AddressMap({ onConfirm, loading }) {
       </div>
 
       {pin && (
-        <div className="confirm-step">
+        <div className="confirm-step" id="entry-confirm">
           <div className="confirm-head">
             <h2 className="confirm-title">Is the pin on your roof?</h2>
             <p className="confirm-copy">

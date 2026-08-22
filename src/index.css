@@ -88,7 +88,10 @@
   color: var(--ink);
   background: var(--paper);
 
-  font: 17px/1.6 var(--sans);
+  /* 19px base. The audience skews older, this is read on a phone as often as
+     a laptop, and the page is mostly money - every point of size here is a
+     point of legibility. Anything sized in rem scales with it. */
+  font: 19px/1.6 var(--sans);
   font-weight: 300;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

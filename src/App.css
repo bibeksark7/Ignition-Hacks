@@ -119,10 +119,48 @@
 
 /* -------------------------------------------------------------------- intro */
 
+/* The entry screen steps a block at a time rather than scrolling as one long
+   column: each block is a full view and snaps, so the address field, the
+   samples and the pin confirmation each get the screen to themselves. Snap is
+   `proximity`, not `mandatory` - mandatory fights the user on a short viewport
+   where a block is taller than the window. */
 .intro {
+  position: relative;
   max-width: 620px;
   margin: 0 auto;
   padding-top: 32px;
+  scroll-snap-type: y proximity;
+}
+
+.intro-stage,
+.intro .demo-picks,
+.intro .confirm-step {
+  scroll-snap-align: start;
+  scroll-margin-top: 84px;
+}
+
+.intro-stage {
+  min-height: min(62vh, 520px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Waves sit behind the whole entry screen, bleeding past the 620px column so
+   the motion is not boxed into the text measure. */
+.waves {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.intro > *:not(.waves) {
+  position: relative;
+  z-index: 1;
 }
 
 .intro-title {
@@ -169,6 +207,28 @@
   background: var(--surface);
   color: var(--ink);
   font-size: 17px;
+}
+
+/* The address field is the only thing asked of a visitor on this screen, so
+   it is sized like the primary action it is rather than a form row.
+   Selector carries the element too: `.field-row input` above is (0,1,1) and
+   would otherwise out-specify a lone class and keep the old 52px. */
+.field-row input.field-input-lg {
+  min-height: 68px;
+  padding: 0 22px;
+  font-size: clamp(19px, 2.4vw, 24px);
+}
+
+.btn.btn-lg {
+  min-height: 68px;
+  padding: 0 30px;
+  font-size: clamp(17px, 1.8vw, 19px);
+}
+
+@media (max-width: 640px) {
+  .field-row {
+    flex-direction: column;
+  }
 }
 
 /* #838d95 on white is 3.6:1. Placeholders are decorative here because every
