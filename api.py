@@ -1,5 +1,4 @@
 import base64
-import io
 import logging
 
 import cv2
@@ -30,10 +29,31 @@ app.add_middleware(
 )
 
 
-def _png_data_uri(array: np.ndarray) -> str:
-    is_bgr = array.ndim == 3 and array.shape[2] == 3
-    encode_input = cv2.cvtColor(array, cv2.COLOR_RGB2BGR) if is_bgr else (array.astype(np.uint8) * 255)
-    ok, buf = cv2.imencode(".png", encode_input)
+def _png_data_uri(image: np.ndarray) -> str:
+    """RGB photo -> PNG data URI."""
+    bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    ok, buf = cv2.imencode(".png", bgr)
+    if not ok:
+        raise RuntimeError("PNG encoding failed")
+    return "data:image/png;base64," + base64.b64encode(buf.tobytes()).decode()
+
+
+def _mask_png_data_uri(mask: np.ndarray) -> str:
+    """Boolean mask -> RGBA PNG data URI with the mask in the ALPHA channel.
+
+    A plain opaque grayscale PNG is unreliable for CSS mask-image: some
+    browsers treat an image with no transparency as "fully revealed"
+    everywhere, ignoring the black/white content entirely - which is
+    exactly the bug where toggling a layer tinted the whole photo instead
+    of just the detected shape. Encoding the mask as alpha (white RGB,
+    alpha = mask) is the convention that reads correctly everywhere,
+    since CSS masking multiplies luminance by alpha regardless of mode.
+    """
+    h, w = mask.shape
+    rgba = np.zeros((h, w, 4), dtype=np.uint8)
+    rgba[..., 0:3] = 255
+    rgba[..., 3] = mask.astype(np.uint8) * 255
+    ok, buf = cv2.imencode(".png", rgba)
     if not ok:
         raise RuntimeError("PNG encoding failed")
     return "data:image/png;base64," + base64.b64encode(buf.tobytes()).decode()
@@ -43,9 +63,9 @@ def _build_response(result: dict, images: dict) -> dict:
     return {
         **result,
         "imagery_png": _png_data_uri(images["tile"]),
-        "roof_mask_png": _png_data_uri(images["roof_mask"]),
-        "canopy_mask_png": _png_data_uri(images["canopy_mask"]),
-        "impervious_mask_png": _png_data_uri(images["impervious_mask"]),
+        "roof_mask_png": _mask_png_data_uri(images["roof_mask"]),
+        "canopy_mask_png": _mask_png_data_uri(images["canopy_mask"]),
+        "impervious_mask_png": _mask_png_data_uri(images["impervious_mask"]),
     }
 
 
