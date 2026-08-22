@@ -169,7 +169,11 @@ function PerilBreakdown({ perils }) {
 }
 
 function MitigationCards({ mitigations }) {
-  const sorted = [...mitigations].sort((a, b) => a.payback_years - b.payback_years)
+  const sorted = [...mitigations].sort((a, b) => {
+    if (a.payback_years == null) return 1
+    if (b.payback_years == null) return -1
+    return a.payback_years - b.payback_years
+  })
   return (
     <section className="mitigations">
       <h2>What you can do about it</h2>
